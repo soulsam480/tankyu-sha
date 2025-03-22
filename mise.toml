@@ -1,2 +1,7 @@
 [tools]
+bun = "latest"
 gleam = "latest"
+
+[tasks.browser]
+description = "Run browser scripts"
+run = "cd browser && bun dev"

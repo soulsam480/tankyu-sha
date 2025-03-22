@@ -1,0 +1,53 @@
+services:
+  # Splash service configuration
+  splash:
+    image: scrapinghub/splash:latest
+    ports:
+      # Map container port 8050 to host port 8050
+      - "8050:8050"
+    # Use interactive mode equivalent to -it flag in docker run
+    stdin_open: true  # equivalent to -i
+    tty: true         # equivalent to -t
+    # You can add environment variables if needed
+    # environment:
+    #   - SPLASH_ARGS="--max-timeout 300 --slots 5"
+    
+    # You can mount volumes if needed
+    # volumes:
+    #   - ./splash-filters:/etc/splash/filters
+    
+    # Add custom healthcheck to ensure service is running correctly
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8050/_ping"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+
+  # Example of how to add another service
+  # postgresql:
+  #   image: postgres:14
+  #   environment:
+  #     - POSTGRES_PASSWORD=mysecretpassword
+  #     - POSTGRES_USER=myuser
+  #     - POSTGRES_DB=mydb
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  # Example of a web application that might use splash for rendering
+  # webapp:
+  #   image: python:3.9
+  #   volumes:
+  #     - ./app:/app
+  #   working_dir: /app
+  #   command: python app.py
+  #   ports:
+  #     - "5000:5000"
+  #   depends_on:
+  #     - splash
+  #     - postgresql
+
+# Define named volumes that can be used by services
+# volumes:
+#   postgres_data:

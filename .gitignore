@@ -3,3 +3,5 @@
 /build
 erl_crash.dump
 lightpanda
+node_modules
+dist
