@@ -1,37 +1,22 @@
-import chrobot
-import chrobot/chrome
-import gleam/io
-import gleam/list
-import gleam/result
+import services/google
 
 pub fn main() {
-  let config =
-    chrome.BrowserConfig(
-      path: "/Applications/Chromium.app/Contents/MacOS/Chromium",
-      args: chrome.get_default_chrome_args()
-        |> list.filter(fn(x) { x != "--headless" })
-        |> list.append(["--user-data-dir=/tmp/chromium-debug"]),
-      log_level: chrome.LogLevelInfo,
-      start_timeout: chrome.default_timeout,
-    )
+  // TODO: POC
+  // plan
+  // 1. setup search for keywords
+  // 2. find results from search and then create sources based on results
+  // 3. save sources from selection
+  // 4. try loading a source into chrome and fetch text info
+  // 5. save text info based on run meta data to db
+  // 6. send source run text to LLM for analysis
+  // 7. construct report based on that
+  // 8. email
 
-  use browser <- result.map(chrome.launch_with_config(config))
-  use page <- result.map(chrobot.open(
-    browser,
-    "https://duckduckgo.com/?q=som",
-    30_000,
-  ))
-  use _ <- result.map(chrobot.await_load_event(browser, page))
-  use page_items <- result.map(chrobot.select_all(page, "a"))
+  // INFO: --------------- implementation ----------------
 
-  use title_results <- result.map(
-    list.map(page_items, fn(i) { chrobot.get_attribute(page, i, "href") })
-    |> result.all(),
-  )
+  // 1. setup search
+  // rn search is based on duck duck go, we can use google but that needs lot of extra work
+  let results = google.search("sambitsahoo")
 
-  io.debug(title_results)
-
-  use _ <- result.try(chrobot.quit(browser))
-
-  Ok(Nil)
+  echo results
 }
