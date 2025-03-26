@@ -1,4 +1,4 @@
-import services/google
+import app/main
 
 pub fn main() {
   // TODO: POC
@@ -16,7 +16,9 @@ pub fn main() {
 
   // 1. setup search
   // rn search is based on duck duck go, we can use google but that needs lot of extra work
-  let results = google.search("sambitsahoo")
+  // let results = google.search("sambitsahoo")
+  //
+  // echo results
 
-  echo results
+  main.run_app()
 }
