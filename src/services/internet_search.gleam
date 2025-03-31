@@ -1,8 +1,11 @@
+import ffi/dom
 import gleam/dict
 import gleam/hackney
 import gleam/http/request
+import gleam/list
+import gleam/option
 import gleam/result
-import services/dom
+import gleam/uri
 
 pub fn search(term: String) -> Result(List(dict.Dict(dom.Key, String)), Nil) {
   let assert Ok(req) = request.to("https://html.duckduckgo.com/html?q=" <> term)
@@ -30,7 +33,33 @@ pub fn search(term: String) -> Result(List(dict.Dict(dom.Key, String)), Nil) {
 
   case response.status {
     200 -> {
-      Ok(dom.find_links(response.body))
+      dom.find_links(response.body)
+      |> list.map(fn(it) {
+        let res = {
+          use link <- result.try(dict.get(it, dom.Link))
+          use parsed <- result.try(uri.parse(link))
+
+          case parsed.query {
+            option.Some(str) -> {
+              use parsed_query <- result.try(uri.parse_query(str))
+
+              use internal_link <- result.try(
+                parsed_query
+                |> list.key_find("uddg"),
+              )
+
+              Ok(dict.merge(
+                it,
+                dict.new() |> dict.insert(dom.Link, internal_link),
+              ))
+            }
+            _ -> Ok(it)
+          }
+        }
+
+        result.unwrap(res, it)
+      })
+      |> Ok
     }
     _ -> {
       Error(Nil)

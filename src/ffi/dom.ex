@@ -5,8 +5,9 @@ defmodule Dom do
 
     document
     |> Floki.find(".result")
-    |> Enum.map(fn el ->
-      link = el |> Floki.find("a") |> Floki.attribute("href") |> List.first()
+    |> Enum.with_index(1)
+    |> Enum.map(fn {el, index} ->
+      link = el |> Floki.find("a.result__url") |> Floki.attribute("href") |> List.first()
 
       text =
         el
@@ -15,7 +16,7 @@ defmodule Dom do
         |> String.replace(~r/\n/, "")
         |> String.replace(~r/\s+/, " ")
 
-      %{link: link, title: text}
+      %{link: link, title: text, id: index |> Integer.to_string()}
     end)
   end
 end

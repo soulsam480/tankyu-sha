@@ -3,6 +3,7 @@ import gleam/dict
 pub type Key {
   Link
   Title
+  Id
 }
 
 // src/ffi/dom.ex
