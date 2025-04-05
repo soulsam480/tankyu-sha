@@ -1,4 +1,5 @@
 import app/main
+import lib/error
 
 pub fn main() {
   // TODO: POC
@@ -20,5 +21,5 @@ pub fn main() {
   //
   // echo results
 
-  main.run_app()
+  main.run_app() |> error.trap
 }

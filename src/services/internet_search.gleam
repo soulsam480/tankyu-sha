@@ -6,9 +6,19 @@ import gleam/list
 import gleam/option
 import gleam/result
 import gleam/uri
+import lib/error
+import snag
 
-pub fn search(term: String) -> Result(List(dict.Dict(dom.Key, String)), Nil) {
-  let assert Ok(req) = request.to("https://html.duckduckgo.com/html?q=" <> term)
+pub fn search(
+  term: String,
+) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
+  use req <- result.try(
+    request.to(
+      "https://html.duckduckgo.com/html?q=" <> uri.percent_encode(term),
+    )
+    |> error.map_to_snag("Unable to create request")
+    |> error.trap,
+  )
 
   use response <- result.try(
     req
@@ -28,7 +38,8 @@ pub fn search(term: String) -> Result(List(dict.Dict(dom.Key, String)), Nil) {
     |> request.set_header("Sec-Fetch-Mode", "navigate")
     |> request.set_header("Sec-Fetch-Site", "none")
     |> hackney.send
-    |> result.replace_error(Nil),
+    |> error.map_to_snag("Unable to send request with error: ")
+    |> error.trap,
   )
 
   case response.status {
@@ -62,7 +73,7 @@ pub fn search(term: String) -> Result(List(dict.Dict(dom.Key, String)), Nil) {
       |> Ok
     }
     _ -> {
-      Error(Nil)
+      snag.error("Search request failed")
     }
   }
 }

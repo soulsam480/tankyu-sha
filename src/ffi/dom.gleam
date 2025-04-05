@@ -4,6 +4,7 @@ pub type Key {
   Link
   Title
   Id
+  Description
 }
 
 // src/ffi/dom.ex
