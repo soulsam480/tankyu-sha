@@ -3,12 +3,10 @@ import gleam/string
 import snag
 
 pub fn trap(from: Result(a, b)) -> Result(a, b) {
-  let _ = case result.is_error(from) {
+  case result.is_error(from) {
     True -> echo from
     _ -> from
   }
-
-  from
 }
 
 pub fn map_to_snag(from: Result(a, b), error: String) -> Result(a, snag.Snag) {

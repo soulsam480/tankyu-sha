@@ -1,14 +1,24 @@
 import chrobot
 import chrobot/chrome
-import chrobot/protocol/page as chropage
 import envoy
-import gleam/option
+import gleam/erlang/process
 import gleam/result
+import lib/error
+import snag
 
-pub fn search_browser() {
-  use path <- result.map(chrome.get_system_chrome_path())
+pub fn load(
+  url url: String,
+  with fun: fn(process.Subject(chrome.Message), chrobot.Page) ->
+    Result(a, snag.Snag),
+) -> Result(a, snag.Snag) {
+  use path <- result.try(
+    chrome.get_system_chrome_path()
+    |> error.map_to_snag("Unable to get chrome path"),
+  )
 
-  use temp <- result.map(envoy.get("TMPDIR"))
+  use temp <- result.try(
+    envoy.get("TMPDIR") |> error.map_to_snag("Unable to get temp dir"),
+  )
 
   let args = [
     "--disable-field-trial-config",
@@ -56,13 +66,20 @@ pub fn search_browser() {
       start_timeout: chrome.default_timeout,
     )
 
-  use browser <- result.map(chrome.launch_with_config(config))
+  use browser <- result.try(
+    chrome.launch_with_config(config)
+    |> error.map_to_snag("Launch unsuccessful!"),
+  )
 
-  use page <- result.map(chrobot.open(browser, "about:blank", 30_000))
+  use page <- result.try(
+    chrobot.open(browser, url, 30_000)
+    |> error.map_to_snag("Unable to open page"),
+  )
 
-  use _ <- result.then(chrobot.eval(
-    page,
-    "
+  use _ <- result.try(
+    chrobot.eval(
+      page,
+      "
       Object.defineProperty(navigator, 'webdriver', {
         get: () => false,
       });
@@ -88,40 +105,13 @@ pub fn search_browser() {
           originalQuery(parameters)
       );
 ",
-  ))
+    )
+    |> error.map_to_snag("Unable to run init scrpt"),
+  )
 
-  let callback = chrobot.page_caller(page)
+  let res = fun(browser, page)
 
-  // use _ <- result.then(chrobot.eval_async(
-  //   page,
-  //   "new Promise((resolve, reject) => setTimeout(() => resolve(42), 600000))",
-  // ))
+  let _ = chrobot.quit(browser) |> error.map_to_snag("Shutdown unsuccessful!")
 
-  use _ <- result.then(chropage.navigate(
-    callback,
-    "https://sambitsahoo.com",
-    option.None,
-    option.None,
-    option.None,
-  ))
-
-  use _ <- result.map(chrobot.await_load_event(browser, page))
-  // use input <- result.map(chrobot.select(page, "textarea"))
-  //
-  // use _ <- result.then(chrobot.focus(page, input))
-  // use _ <- result.then(chrobot.type_text(page, "revenuehero"))
-  // use _ <- result.then(chrobot.press_key(page, "Enter"))
-  //
-  // use _ <- result.then(chrobot.await_load_event(browser, page))
-
-  // use title_results <- result.map(
-  //   list.map(page_items, fn(i) { chrobot.get_attribute(page, i, "href") })
-  //   |> result.all(),
-  // )
-  //
-  // io.debug(title_results)
-
-  let _ = chrobot.quit(browser)
-
-  Ok(Nil)
+  res
 }

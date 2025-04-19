@@ -1,3 +1,4 @@
+import content/runner
 import content/source
 import ffi/dom
 import gleam/dict
@@ -154,6 +155,8 @@ pub fn run_app() {
   let assert Ok(source) = source.new(opt_val, "linkedin", source_type)
 
   echo source
+
+  let _ = runner.run(source)
 
   Ok(source)
 }

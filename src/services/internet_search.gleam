@@ -2,6 +2,7 @@ import ffi/dom
 import gleam/dict
 import gleam/hackney
 import gleam/http/request
+import gleam/int
 import gleam/list
 import gleam/option
 import gleam/result
@@ -32,7 +33,7 @@ pub fn search(
     )
     |> request.set_header("Accept-Language", "en-US,en;q=0.5")
     |> request.set_header("DNT", "1")
-    |> request.set_header("Connection", "keep-alive")
+    // |> request.set_header("Connection", "keep-alive")
     |> request.set_header("Upgrade-Insecure-Requests", "1")
     |> request.set_header("Sec-Fetch-Dest", "document")
     |> request.set_header("Sec-Fetch-Mode", "navigate")
@@ -73,7 +74,9 @@ pub fn search(
       |> Ok
     }
     _ -> {
-      snag.error("Search request failed")
+      snag.error(
+        "Search request failed with " <> int.to_string(response.status),
+      )
     }
   }
 }
