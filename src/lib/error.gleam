@@ -10,5 +10,5 @@ pub fn trap(from: Result(a, b)) -> Result(a, b) {
 }
 
 pub fn map_to_snag(from: Result(a, b), error: String) -> Result(a, snag.Snag) {
-  result.map_error(from, fn(e) { snag.new(error <> string.inspect(e)) })
+  result.map_error(from, fn(e) { snag.new(error <> "::" <> string.inspect(e)) })
 }

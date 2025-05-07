@@ -156,7 +156,7 @@ pub fn run_app() {
 
   echo source
 
-  let _ = runner.run(source)
+  let _ = runner.run(source) |> echo
 
   Ok(source)
 }
