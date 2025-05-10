@@ -1,9 +1,9 @@
-import { Source } from "./source.mjs";
+import { Source } from './source.mjs'
 
-const PROFILE_REGEXP = /^\/(?:in|pub)\/(?<handle>[\w\-À-ÿ%]+)\/?/i;
+const PROFILE_REGEXP = /^\/(?:in|pub)\/(?<handle>[\w\-À-ÿ%]+)\/?/i
 
 const COMPANY_REGEXP =
-	/^\/(?:company|school)\/(?<handle>[A-Za-z0-9\-À-ÿ\.]+)\/?/i;
+  /^\/(?:company|school)\/(?<handle>[A-Za-z0-9\-À-ÿ\.]+)\/?/i
 
 /**
  * @typedef {Object} Post
@@ -12,136 +12,136 @@ const COMPANY_REGEXP =
  */
 
 export class Linkedin extends Source {
-	get requiresLogin() {
-		return true;
-	}
+  get requiresLogin() {
+    return true
+  }
 
-	get type() {
-		return "linked_in";
-	}
+  get type() {
+    return 'linked_in'
+  }
 
-	get loginUrl() {
-		return "https://www.linkedin.com/uas/login";
-	}
+  get loginUrl() {
+    return 'https://www.linkedin.com/uas/login'
+  }
 
-	async login() {
-		await this.page.goto(this.loginUrl, {
-			waitUntil: "load",
-		});
+  async login() {
+    await this.page.goto(this.loginUrl, {
+      waitUntil: 'load'
+    })
 
-		await this.page.waitForSelector('input[name="session_key"]');
+    await this.page.waitForSelector('input[name="session_key"]')
 
-		await this.page
-			.locator('input[name="session_key"]')
-			.fill(process.env.LINKEDIN_EMAIL);
+    await this.page
+      .locator('input[name="session_key"]')
+      .fill(process.env.LINKEDIN_EMAIL || '')
 
-		await this.page
-			.locator('input[name="session_password"]')
-			.fill(process.env.LINKEDIN_PASSWORD);
+    await this.page
+      .locator('input[name="session_password"]')
+      .fill(process.env.LINKEDIN_PASSWORD || '')
 
-		await this.page.locator('[type="submit"]').click();
+    await this.page.locator('[type="submit"]').click()
 
-		await this.page.waitForSelector(".global-nav__content");
-	}
+    await this.page.waitForSelector('.global-nav__content')
+  }
 
-	/**
-	 * @param {string} url process provided url
-	 */
-	async process(url) {
-		const profilePath = this.#getFeedPath(url);
+  /**
+   * @param {string} url process provided url
+   */
+  async process(url) {
+    const profilePath = this.#getFeedPath(url)
 
-		if (!profilePath) {
-			throw new Error(JSON.stringify({ type: "UNKNOWN_LINKEDIN_KIND" }));
-		}
+    if (!profilePath) {
+      throw new Error(JSON.stringify({ type: 'UNKNOWN_LINKEDIN_KIND' }))
+    }
 
-		const { hostname } = new URL(url);
+    const { hostname } = new URL(url)
 
-		const feedUrl = `https://${hostname}${profilePath}`;
+    const feedUrl = `https://${hostname}${profilePath}`
 
-		await this.page.goto(feedUrl);
+    await this.page.goto(feedUrl)
 
-		const posts = await this.#getPosts();
+    const posts = await this.#getPosts()
 
-		return JSON.stringify({ data: posts });
-	}
+    return JSON.stringify({ data: posts })
+  }
 
-	/**
-	 * @param {string} url
-	 */
-	#getPageKind(url) {
-		const { pathname } = new URL(url);
+  /**
+   * @param {string} url
+   */
+  #getPageKind(url) {
+    const { pathname } = new URL(url)
 
-		if (PROFILE_REGEXP.test(pathname)) {
-			return "profile";
-		}
+    if (PROFILE_REGEXP.test(pathname)) {
+      return 'profile'
+    }
 
-		if (COMPANY_REGEXP.test(pathname)) {
-			return "company";
-		}
+    if (COMPANY_REGEXP.test(pathname)) {
+      return 'company'
+    }
 
-		return "unknown";
-	}
+    return 'unknown'
+  }
 
-	/**
-	 * @param {string} url
-	 */
-	#getFeedPath(url) {
-		const kind = this.#getPageKind(url);
-		const { pathname } = new URL(url);
+  /**
+   * @param {string} url
+   */
+  #getFeedPath(url) {
+    const kind = this.#getPageKind(url)
+    const { pathname } = new URL(url)
 
-		switch (kind) {
-			case "profile": {
-				const handle = pathname.match(PROFILE_REGEXP).groups?.handle;
+    switch (kind) {
+      case 'profile': {
+        const handle = pathname.match(PROFILE_REGEXP)?.groups?.handle
 
-				if (!handle) {
-					throw new Error(JSON.stringify({ type: "UNKNOWN_PROFILE" }));
-				}
+        if (!handle) {
+          throw new Error(JSON.stringify({ type: 'UNKNOWN_PROFILE' }))
+        }
 
-				return `/in/${handle}/recent-activity/all`;
-			}
-			case "company": {
-				const handle = pathname.match(COMPANY_REGEXP).groups?.handle;
+        return `/in/${handle}/recent-activity/all`
+      }
+      case 'company': {
+        const handle = pathname.match(COMPANY_REGEXP)?.groups?.handle
 
-				if (!handle) {
-					throw new Error(JSON.stringify({ type: "UNKNOWN_COMPANY" }));
-				}
+        if (!handle) {
+          throw new Error(JSON.stringify({ type: 'UNKNOWN_COMPANY' }))
+        }
 
-				return `/company/${handle}/posts/?feedView=all`;
-			}
-			default:
-				return null;
-		}
-	}
+        return `/company/${handle}/posts/?feedView=all`
+      }
+      default:
+        return null
+    }
+  }
 
-	async #getPosts() {
-		await this.page.waitForSelector("[role=article]");
+  async #getPosts() {
+    await this.page.waitForSelector('[role=article]')
 
-		const articles = await this.page.locator("[role=article]").all();
+    const articles = await this.page.locator('[role=article]').all()
 
-		/** @type {Post[]} */
-		const posts = [];
+    /** @type {Post[]} */
+    const posts = []
 
-		let count = 1;
+    let count = 1
 
-		for (const article of articles) {
-			const showMore = article.locator("button[class*='show-more']");
+    for (const article of articles) {
+      const showMore = article.locator("button[class*='show-more']")
 
-			if (await showMore.isVisible()) {
-				await showMore.click();
-			}
+      if (await showMore.isVisible()) {
+        await showMore.click()
+      }
 
-			const postText = await article
-				.locator(".update-components-text")
-				.textContent();
+      const postText = await article
+        .locator('.update-components-text')
+        .textContent()
 
-			if (postText) {
-				posts.push({
-					id: count++,
-					content: postText,
-				});
-			}
-		}
+      if (postText) {
+        posts.push({
+          id: count++,
+          content: postText
+        })
+      }
+    }
 
-		return posts;
-	}
+    return posts
+  }
 }

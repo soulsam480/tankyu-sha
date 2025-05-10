@@ -1,4 +1,5 @@
 import content/source
+import ffi/ai
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/json
@@ -15,11 +16,30 @@ type KnownFeeds {
 }
 
 pub fn run(source: source.Source) {
+  use posts <- result.try(get_feed_posts(source))
+
+  use _ <- result.try(get_feed_analysis(posts))
+
+  Ok([])
+}
+
+fn get_feed_analysis(posts: List(Post)) {
+  let _ =
+    ai.get_feed_analysis(posts |> json.array(encode_post) |> json.to_string())
+    |> echo
+
+  Ok([])
+}
+
+fn get_feed_posts(source: source.Source) {
   use kind <- result.try(feed_kind(source))
 
   case kind {
     LinkedIn -> {
-      use response <- result.try(browser.load(source.url, ["LinkedIn"]) |> echo)
+      use response <- result.try(
+        browser.load(source.url, ["--kind=LinkedIn"])
+        |> echo,
+      )
 
       use base_result <- result.try(
         decode_base_result(response)
@@ -29,7 +49,7 @@ pub fn run(source: source.Source) {
       case base_result {
         SuccessResponse(data) -> {
           use posts <- result.try(
-            decode_post(data) |> error.map_to_snag("Unable to decode posts"),
+            decode_posts(data) |> error.map_to_snag("Unable to decode posts"),
           )
 
           Ok(posts)
@@ -43,15 +63,6 @@ pub fn run(source: source.Source) {
       Ok([])
     }
   }
-}
-
-pub fn main() {
-  run(source.Source(
-    source.Feed,
-    "sime",
-    "https://www.linkedin.com/in/susaatrevenuehero/",
-  ))
-  |> echo
 }
 
 fn feed_kind(source: source.Source) {
@@ -90,13 +101,18 @@ pub type Post {
   Post(id: Int, content: String)
 }
 
-fn decode_post(posts: dynamic.Dynamic) {
-  let post_decoder = {
-    use id <- decode.field("id", decode.int)
-    use content <- decode.field("content", decode.string)
+fn encode_post(post: Post) -> json.Json {
+  let Post(id:, content:) = post
 
-    decode.success(Post(id:, content:))
-  }
+  json.object([#("id", json.int(id)), #("content", json.string(content))])
+}
 
-  decode.run(posts, decode.list(post_decoder))
+fn post_decoder() -> decode.Decoder(Post) {
+  use id <- decode.field("id", decode.int)
+  use content <- decode.field("content", decode.string)
+  decode.success(Post(id:, content:))
+}
+
+fn decode_posts(posts: dynamic.Dynamic) {
+  decode.run(posts, decode.list(post_decoder()))
 }

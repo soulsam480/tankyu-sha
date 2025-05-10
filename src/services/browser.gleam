@@ -23,17 +23,20 @@ pub fn load(
 }
 
 fn do_load(url: String, opts: List(String)) {
+  let command_opt = {
+    case list.find(opts, fn(it) { string.contains(it, "--debug=true") }) {
+      Ok(_) -> [shellout.LetBeStderr, shellout.LetBeStdout]
+      _ -> []
+    }
+  }
+
   fn() {
     shellout.command(
       "node",
-      ["./priv/run.mjs", url] |> list.append(opts),
+      ["./priv/run.mjs", "--url=" <> url] |> list.append(opts),
       ".",
-      [],
+      command_opt,
     )
     |> result.map_error(fn(e) { ShellError(e |> string.inspect) })
   }
-}
-
-pub fn main() {
-  load("https://www.linkedin.com/company/revenuehero", ["LinkedIn"]) |> echo
 }
