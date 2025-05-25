@@ -1,5 +1,6 @@
 import ffi/dom
 import gleam/dict
+import gleam/dynamic/decode
 import gleam/hackney
 import gleam/http/request
 import gleam/int
@@ -8,6 +9,7 @@ import gleam/option
 import gleam/result
 import gleam/uri
 import lib/error
+import services/browser
 import snag
 
 pub fn search(
@@ -77,6 +79,51 @@ pub fn search(
       snag.error(
         "Search request failed with " <> int.to_string(response.status),
       )
+    }
+  }
+}
+
+pub fn browser_search(
+  term: String,
+) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
+  use response <- result.try(
+    browser.load("https://duckduckgo.com?ia=web", [
+      "--term=" <> term,
+      "--kind=Search",
+    ]),
+  )
+
+  case response {
+    browser.SuccessResponse(data) -> {
+      let search_results_decoder = {
+        use id <- decode.field("id", decode.string)
+        use link <- decode.field("link", decode.optional(decode.string))
+        use title <- decode.field("title", decode.string)
+        use description <- decode.field("description", decode.string)
+
+        decode.success(
+          dict.new()
+          |> dict.insert(dom.Id, id)
+          |> dict.insert(dom.Title, title)
+          |> dict.insert(dom.Description, description)
+          |> dict.insert(dom.Link, {
+            case link {
+              option.Some(val) -> val
+              _ -> ""
+            }
+          }),
+        )
+      }
+
+      use results <- result.try(
+        decode.run(data, decode.list(search_results_decoder))
+        |> error.map_to_snag("Unable to decode search results"),
+      )
+
+      Ok(results)
+    }
+    _ -> {
+      Ok([])
     }
   }
 }

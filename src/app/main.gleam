@@ -65,7 +65,7 @@ pub fn run_app() {
   )
 
   use search_results <- result.try(
-    internet_search.search(val <> scope) |> error.trap,
+    internet_search.browser_search(val <> scope) |> error.trap,
   )
 
   let q =

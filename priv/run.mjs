@@ -4,20 +4,32 @@ import dotenv from 'dotenv'
 import { Linkedin } from './modules/linkedin.mjs'
 import { parseArgs } from 'node:util'
 import { Search } from './modules/search.mjs'
+import { Harvest } from './modules/harvest.mjs'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 
 dotenv.config()
 
 chromium.use(StealthPlugin())
 
-const SOURCE_TO_CTOR = {
+const STORAGE_STATE_PATH = path.join(process.cwd(), 'storage_state.json')
+
+const SERVICE_TO_CTOR = {
   LinkedIn: Linkedin,
-  Search: Search
+  Search: Search,
+  Harvest: Harvest
 }
 
+/** @type {import("playwright").ChromiumBrowser | null} */
+let browser = null
+
 async function main() {
+  let close
+
   try {
     const { values } = parseArgs({
       strict: false,
+      allowNegative: true,
       options: {
         url: {
           type: 'string',
@@ -39,7 +51,7 @@ async function main() {
 
     const { url, ...params } = values
 
-    /** @type {keyof typeof SOURCE_TO_CTOR | null} */
+    /** @type {keyof typeof SERVICE_TO_CTOR | null} */
     // @ts-expect-error
     const kind = values.kind || null
 
@@ -48,39 +60,65 @@ async function main() {
       return
     }
 
-    const browser = await chromium.launch({
-      slowMo: 500,
+    browser = await chromium.launch({
       headless: Boolean(values.headless),
       executablePath: '/Applications/Chromium.app/Contents/MacOS/Chromium',
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-site-isolation-trials'
+        '--disable-site-isolation-trials',
+        '--disable-web-security'
       ]
     })
 
-    const context = await browser.newContext()
+    let context
+
+    try {
+      const storageState = await fs.readFile(STORAGE_STATE_PATH, 'utf-8')
+
+      context = await browser.newContext({
+        bypassCSP: true,
+        storageState: JSON.parse(storageState)
+      })
+    } catch (_) {
+      context = await browser.newContext({
+        bypassCSP: true
+      })
+    }
+
+    context.route('**/*', (route, req) => {
+      if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
+        route.abort()
+      } else {
+        route.continue()
+      }
+    })
 
     const page = await context.newPage()
 
-    // Set up human-like behaviors
+    close = async () => {
+      try {
+        const storageState = await context.storageState()
 
-    async function close() {
+        await fs.writeFile(
+          STORAGE_STATE_PATH,
+          JSON.stringify(storageState, null, 2)
+        )
+      } catch (_) {}
+
       await page.close()
-      await context.close()
-      await browser.close()
+      await context?.close()
+      await browser?.close()
     }
 
     if (!kind) {
-      // TODO: any kind process
-
       await close()
       console.log(JSON.stringify({ data: [] }))
 
       return
     }
 
-    const Ctor = SOURCE_TO_CTOR[kind]
+    const Ctor = SERVICE_TO_CTOR[kind]
 
     if (!Ctor) {
       await close()
@@ -89,13 +127,12 @@ async function main() {
     }
 
     /**  @type {import("./modules/source.mjs").Source} */
+    // @ts-expect-error ignore
     const source = new Ctor(page, params)
 
     await source.init()
 
     const response = await source.process(String(url))
-
-    await close()
 
     console.log(response)
   } catch (e) {
@@ -103,11 +140,28 @@ async function main() {
       JSON.stringify({
         error: {
           type: 'PROCESS_ERROR',
-          details: e
+          details:
+            typeof e?.toString === 'function' ? e.toString() : JSON.stringify(e)
         }
       })
     )
+  } finally {
+    close?.()
   }
 }
 
 main()
+
+process.on('SIGINT', async () => {
+  try {
+    await browser?.close()
+  } finally {
+  }
+})
+
+process.on('exit', async () => {
+  try {
+    await browser?.close()
+  } finally {
+  }
+})

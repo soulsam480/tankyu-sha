@@ -8,18 +8,18 @@ packages = [
   { name = "floki", version = "0.37.1", build_tools = ["mix"], requirements = [], otp_app = "floki", source = "hex", outer_checksum = "673D040CB594D31318D514590246B6DD587ED341D3B67E17C1C0EB8CE7CA6F04" },
   { name = "gleam_erlang", version = "0.34.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_erlang", source = "hex", outer_checksum = "0C38F2A128BAA0CEF17C3000BD2097EB80634E239CE31A86400C4416A5D0FDCC" },
   { name = "gleam_hackney", version = "1.3.1", build_tools = ["gleam"], requirements = ["gleam_http", "gleam_stdlib", "hackney"], otp_app = "gleam_hackney", source = "hex", outer_checksum = "0449AADBEBF3E979509A4079EE34B92EEE4162C5A0DC94F3DA2787E4777F6B45" },
-  { name = "gleam_http", version = "3.7.2", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_http", source = "hex", outer_checksum = "8A70D2F70BB7CFEB5DF048A2183FFBA91AF6D4CF5798504841744A16999E33D2" },
-  { name = "gleam_json", version = "2.3.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_json", source = "hex", outer_checksum = "C55C5C2B318533A8072D221C5E06E5A75711C129E420DD1CE463342106012E5D" },
+  { name = "gleam_http", version = "4.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_http", source = "hex", outer_checksum = "0A62451FC85B98062E0907659D92E6A89F5F3C0FBE4AB8046C99936BF6F91DBC" },
+  { name = "gleam_json", version = "3.0.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_json", source = "hex", outer_checksum = "5BA154440B22D9800955B1AB854282FA37B97F30F409D76B0824D0A60C934188" },
   { name = "gleam_otp", version = "0.16.1", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_stdlib"], otp_app = "gleam_otp", source = "hex", outer_checksum = "50DA1539FC8E8FA09924EB36A67A2BBB0AD6B27BCDED5A7EF627057CF69D035E" },
   { name = "gleam_regexp", version = "1.1.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_regexp", source = "hex", outer_checksum = "9C215C6CA84A5B35BB934A9B61A9A306EC743153BE2B0425A0D032E477B062A9" },
-  { name = "gleam_stdlib", version = "0.59.0", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "F8FEE9B35797301994B81AF75508CF87C328FE1585558B0FFD188DC2B32EAA95" },
+  { name = "gleam_stdlib", version = "0.60.0", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "621D600BB134BC239CB2537630899817B1A42E60A1D46C5E9F3FAE39F88C800B" },
   { name = "gleeunit", version = "1.3.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleeunit", source = "hex", outer_checksum = "A7DD6C07B7DA49A6E28796058AA89E651D233B357D5607006D70619CD89DAAAB" },
   { name = "hackney", version = "1.23.0", build_tools = ["rebar3"], requirements = ["certifi", "idna", "metrics", "mimerl", "parse_trans", "ssl_verify_fun", "unicode_util_compat"], otp_app = "hackney", source = "hex", outer_checksum = "6CD1C04CD15C81E5A493F167B226A15F0938A84FC8F0736EBE4DDCAB65C0B44E" },
   { name = "hpax", version = "1.0.3", build_tools = ["mix"], requirements = [], otp_app = "hpax", source = "hex", outer_checksum = "8EAB6E1CFA8D5918C2CE4BA43588E894AF35DBD8E91E6E55C817BCA5847DF34A" },
   { name = "idna", version = "6.1.1", build_tools = ["rebar3"], requirements = ["unicode_util_compat"], otp_app = "idna", source = "hex", outer_checksum = "92376EB7894412ED19AC475E4A86F7B413C1B9FBB5BD16DCCD57934157944CEA" },
   { name = "jason", version = "1.4.4", build_tools = ["mix"], requirements = ["decimal"], otp_app = "jason", source = "hex", outer_checksum = "C5EB0CAB91F094599F94D55BC63409236A8EC69A21A67814529E8D5F6CC90B3B" },
   { name = "metrics", version = "1.0.1", build_tools = ["rebar3"], requirements = [], otp_app = "metrics", source = "hex", outer_checksum = "69B09ADDDC4F74A40716AE54D140F93BEB0FB8978D8636EADED0C31B6F099F16" },
-  { name = "mime", version = "2.0.6", build_tools = ["mix"], requirements = [], otp_app = "mime", source = "hex", outer_checksum = "C9945363A6B26D747389AAC3643F8E0E09D30499A138AD64FE8FD1D13D9B153E" },
+  { name = "mime", version = "2.0.7", build_tools = ["mix"], requirements = [], otp_app = "mime", source = "hex", outer_checksum = "6171188E399EE16023FFC5B76CE445EB6D9672E2E241D2DF6050F3C771E80CCD" },
   { name = "mimerl", version = "1.3.0", build_tools = ["rebar3"], requirements = [], otp_app = "mimerl", source = "hex", outer_checksum = "A1E15A50D1887217DE95F0B9B0793E32853F7C258A5CD227650889B38839FE9D" },
   { name = "mint", version = "1.7.1", build_tools = ["mix"], requirements = ["castore", "hpax"], otp_app = "mint", source = "hex", outer_checksum = "FCEBA0A4D0F24301DDEE3024AE116DF1C3F4BB7A563A731F45FDFEB9D39A231B" },
   { name = "nimble_options", version = "1.1.1", build_tools = ["mix"], requirements = [], otp_app = "nimble_options", source = "hex", outer_checksum = "821B2470CA9442C4B6984882FE9BB0389371B8DDEC4D45A9504F00A66F650B44" },
@@ -40,13 +40,13 @@ packages = [
 [requirements]
 envoy = { version = ">= 1.0.2 and < 2.0.0" }
 floki = { version = ">= 0.37.1 and < 1.0.0" }
-gleam_erlang = { version = ">= 0.33.0 and < 1.0.0" }
+gleam_erlang = { version = ">= 0.34.0 and < 1.0.0" }
 gleam_hackney = { version = ">= 1.3.1 and < 2.0.0" }
-gleam_http = { version = ">= 3.7.2 and < 4.0.0" }
-gleam_json = { version = ">= 2.3.0 and < 3.0.0" }
+gleam_http = { version = ">= 4.0.0 and < 5.0.0" }
+gleam_json = { version = ">= 3.0.1 and < 4.0.0" }
 gleam_otp = { version = ">= 0.16.1 and < 1.0.0" }
 gleam_regexp = { version = ">= 1.1.0 and < 2.0.0" }
-gleam_stdlib = { version = ">= 0.59.0 and < 1.0.0" }
+gleam_stdlib = { version = ">= 0.59.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
 ollama = { version = ">= 0.8.0 and < 1.0.0" }
 shellout = { version = ">= 1.6.0 and < 2.0.0" }

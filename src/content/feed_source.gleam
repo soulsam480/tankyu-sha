@@ -36,25 +36,19 @@ fn get_feed_posts(source: source.Source) {
 
   case kind {
     LinkedIn -> {
-      use response <- result.try(
-        browser.load(source.url, ["--kind=LinkedIn"])
-        |> echo,
-      )
-
       use base_result <- result.try(
-        decode_base_result(response)
-        |> error.map_to_snag("Browser returned invalid response"),
+        browser.load(source.url, ["--kind=LinkedIn", "--no-headless", "--debug"]),
       )
 
       case base_result {
-        SuccessResponse(data) -> {
+        browser.SuccessResponse(data) -> {
           use posts <- result.try(
             decode_posts(data) |> error.map_to_snag("Unable to decode posts"),
           )
 
           Ok(posts)
         }
-        ErrorResponse(_) -> {
+        browser.ErrorResponse(_) -> {
           Ok([])
         }
       }
@@ -77,26 +71,6 @@ fn feed_kind(source: source.Source) {
   }
 }
 
-pub type BrowserResponse {
-  SuccessResponse(data: dynamic.Dynamic)
-  ErrorResponse(error: dynamic.Dynamic)
-}
-
-fn decode_base_result(json_str: String) {
-  let success_decoder = {
-    use data <- decode.field("data", decode.dynamic)
-    decode.success(SuccessResponse(data:))
-  }
-
-  let error_decoder = {
-    use data <- decode.field("error", decode.dynamic)
-
-    decode.success(ErrorResponse(error: data))
-  }
-
-  json.parse(json_str, decode.one_of(success_decoder, [error_decoder]))
-}
-
 pub type Post {
   Post(id: Int, content: String)
 }
@@ -115,4 +89,18 @@ fn post_decoder() -> decode.Decoder(Post) {
 
 fn decode_posts(posts: dynamic.Dynamic) {
   decode.run(posts, decode.list(post_decoder()))
+}
+
+pub fn main() {
+  use resp <- result.try(
+    get_feed_posts(source.Source(
+      source.Feed,
+      "LinkedIn",
+      "https://www.linkedin.com/company/revenuehero",
+  )),
+  )
+
+  echo resp
+
+  Ok([])
 }

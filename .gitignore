@@ -6,3 +6,4 @@ lightpanda
 node_modules
 dist
 .env
+storage_state.json

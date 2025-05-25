@@ -58,8 +58,8 @@ export class Source {
   async humanMouseMovement() {
     // Move mouse randomly
     await this.page.mouse.move(
-      100 + Math.floor(Math.random() * 500),
-      100 + Math.floor(Math.random() * 500),
+      100 + Math.floor(Math.random() * 100),
+      100 + Math.floor(Math.random() * 100),
       { steps: 10 }
     )
   }
@@ -74,7 +74,7 @@ export class Source {
    */
   async humanType(text) {
     for (const char of text) {
-      await this.page.keyboard.type(char, { delay: 100 + Math.random() * 200 })
+      await this.page.keyboard.type(char, { delay: 10 + Math.random() * 200 })
     }
   }
 }
