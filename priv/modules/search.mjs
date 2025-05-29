@@ -1,5 +1,4 @@
 import { Source } from './source.mjs'
-import { RunnerError } from '../lib/error.mjs'
 
 export class Search extends Source {
   get requiresLogin() {
@@ -37,54 +36,56 @@ export class Search extends Source {
     await this.page.goto(url, { waitUntil: 'networkidle' })
 
     await this.humanMouseMovement()
-    // await this.randomDelay(500, 1000)
 
-    const { term = '' } = this.params
+    const { term = '', pages: _pages = '1' } = this.params
 
-    if (!term) {
-      throw new RunnerError({
-        type: 'NO_TERM_PROVIDED',
-        details: 'No term provided'
-      })
+    const pages = Number(_pages)
+
+    if (term) {
+      await this.humanType(term)
+      await this.humanMouseMovement()
+      await this.page.keyboard.press('Enter')
     }
-
-    await this.humanType(term)
-    await this.humanMouseMovement()
-    // await this.randomDelay(20, 1000)
-    await this.page.keyboard.press('Enter')
 
     await this.page.waitForSelector('.react-results--main')
 
-    // await this.randomDelay(20, 1000)
+    if (pages > 1) {
+      for (let page = 1; page <= pages; page++) {
+        await this.page
+          .getByRole('button', {
+            name: /more\sresults/i
+          })
+          .first()
+          .click()
+
+        await this.page.waitForResponse(url => {
+          return url.url().includes('links.duckduckgo.com/d.js')
+        })
+      }
+    }
 
     const results = await this.page
       .locator('.react-results--main li[data-layout="organic"]')
       .all()
 
-    const outcome = []
+    const outcome = await Promise.all(
+      results.map(async (result, i) => {
+        const link = result.locator('a[target=_self]').nth(1)
+        const title = await link.textContent()
+        const href = await link.getAttribute('href')
 
-    for (let i = 0; i <= results.length; i++) {
-      const result = results[i]
+        const description = await result
+          .locator('[data-result="snippet"]')
+          .textContent()
 
-      if (!result) {
-        continue
-      }
-
-      const link = result.locator('a[target=_self]').nth(1)
-      const title = await link.textContent()
-      const href = await link.getAttribute('href')
-
-      const description = await result
-        .locator('[data-result="snippet"]')
-        .textContent()
-
-      outcome.push({
-        id: i.toString(),
-        link: href,
-        title,
-        description
+        return {
+          id: i.toString(),
+          link: href,
+          title,
+          description
+        }
       })
-    }
+    )
 
     return JSON.stringify({ data: outcome })
   }

@@ -1,5 +1,4 @@
 import content/source
-import ffi/ai
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/int
@@ -7,9 +6,11 @@ import gleam/list
 import gleam/option
 import gleam/regexp
 import gleam/result
+import gleam/string
 import gleam/string_tree
 import lib/error
 import services/browser
+import snag
 
 /// we'll handle known feeds slight differently
 /// end goal is we can handle all kinds of feeds
@@ -19,19 +20,7 @@ type KnownFeeds {
 }
 
 pub fn run(source: source.Source) {
-  use posts <- result.try(get_feed_posts(source))
-
-  use _ <- result.try(get_feed_analysis(posts))
-
-  Ok([])
-}
-
-fn get_feed_analysis(result: LinkedInResponse) {
-  echo "Showing analysis"
-
-  let _ = ai.get_feed_analysis(prepare_llm_data(result)) |> echo
-
-  Ok([])
+  get_feed_posts(source)
 }
 
 fn get_feed_posts(source: source.Source) {
@@ -50,15 +39,16 @@ fn get_feed_posts(source: source.Source) {
             |> error.map_to_snag("Unable to decode posts"),
           )
 
-          Ok(posts)
+          Ok(posts |> linked_in_to_md())
         }
+
         browser.ErrorResponse(_) -> {
-          Ok(LinkedInResponse([], option.None))
+          snag.error("Browser returned invalid response")
         }
       }
     }
-    _ -> {
-      Ok(LinkedInResponse([], option.None))
+    un -> {
+      snag.error("Unknown feed type" <> string.inspect(un))
     }
   }
 }
@@ -84,17 +74,6 @@ pub type Post {
     time_ago: option.Option(String),
   )
 }
-
-// fn encode_post(post: Post) -> json.Json {
-//   let Post(id:, content:, actor_name:, actor_description:) = post
-//
-//   json.object([
-//     #("id", json.int(id)),
-//     #("content", json.string(content)),
-//     #("actor_name", json.string(actor_name |> option.unwrap(""))),
-//     #("actor_description", json.string(actor_description |> option.unwrap(""))),
-//   ])
-// }
 
 fn post_decoder() -> decode.Decoder(Post) {
   use id <- decode.field("id", decode.int)
@@ -176,7 +155,7 @@ fn linked_in_response_decoder(data: dynamic.Dynamic) {
   decode.run(data, resp_decoder)
 }
 
-fn prepare_llm_data(resp: LinkedInResponse) {
+pub fn linked_in_to_md(resp: LinkedInResponse) {
   let response = string_tree.new()
 
   case resp.company_info {

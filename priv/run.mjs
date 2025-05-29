@@ -87,7 +87,15 @@ async function main() {
     }
 
     context.route('**/*', (route, req) => {
-      if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
+      const url = req.url()
+
+      if (
+        ['image', 'stylesheet', 'font'].includes(
+          route.request().resourceType()
+        ) ||
+        url.includes('googletagmanager') ||
+        url.includes('doubleclick')
+      ) {
         route.abort()
       } else {
         route.continue()

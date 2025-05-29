@@ -4,6 +4,6 @@ import content/source
 pub fn run(source: source.Source) {
   case source.provider {
     source.Feed -> feed_source.run(source)
-    _ -> Ok([])
+    _ -> Ok("")
   }
 }

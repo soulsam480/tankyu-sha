@@ -7,12 +7,13 @@ import gleam/int
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/string_tree
 import gleam/uri
 import lib/error
 import services/browser
 import snag
 
-pub fn search(
+pub fn ddg_simple_search(
   term: String,
 ) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
   use req <- result.try(
@@ -83,14 +84,47 @@ pub fn search(
   }
 }
 
-pub fn browser_search(
+/// d,m,h,y
+pub type DdgParam {
+  Pages(count: String)
+  Range(from: String)
+}
+
+fn ddg_query_params(params: List(DdgParam)) -> String {
+  list.fold(params, string_tree.new(), fn(builder, param) {
+    case param {
+      Range(from) -> {
+        builder |> string_tree.append("&df=") |> string_tree.append(from)
+      }
+      _ -> builder
+    }
+  })
+  |> string_tree.to_string()
+}
+
+fn ddg_pages(pages: List(DdgParam)) -> String {
+  list.find_map(pages, fn(it) {
+    case it {
+      Pages(count) -> Ok("--pages=" <> count)
+      _ -> Ok("--pages=1")
+    }
+  })
+  |> result.unwrap("--pages=1")
+}
+
+/// available values for range -> h,d,m,y
+pub fn ddg_search(
   term: String,
+  params: List(DdgParam),
 ) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
   use response <- result.try(
-    browser.load("https://duckduckgo.com?ia=web", [
-      "--term=" <> term,
-      "--kind=Search",
-    ]),
+    browser.load(
+      "https://duckduckgo.com?q="
+        <> term
+        <> "&ia=web"
+        <> ddg_query_params(params),
+      ["--debug", "--no-headless", "--kind=Search", ddg_pages(params)],
+    ),
   )
 
   case response {
@@ -126,4 +160,9 @@ pub fn browser_search(
       Ok([])
     }
   }
+}
+
+pub fn main() {
+  let _ =
+    ddg_search("ai news india articles and startups", [Range("h")]) |> echo
 }
