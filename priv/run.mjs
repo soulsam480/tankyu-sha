@@ -94,8 +94,6 @@ async function main() {
       }
     })
 
-    const page = await context.newPage()
-
     close = async () => {
       try {
         const storageState = await context.storageState()
@@ -106,7 +104,6 @@ async function main() {
         )
       } catch (_) {}
 
-      await page.close()
       await context?.close()
       await browser?.close()
     }
@@ -128,7 +125,7 @@ async function main() {
 
     /**  @type {import("./modules/source.mjs").Source} */
     // @ts-expect-error ignore
-    const source = new Ctor(page, params)
+    const source = new Ctor(context, params)
 
     await source.init()
 

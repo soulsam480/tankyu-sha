@@ -36,8 +36,6 @@ pub fn load(
     |> error.map_to_snag("Browser returned invalid response"),
   )
 
-  echo base_response
-
   Ok(base_response)
 }
 
@@ -72,8 +70,6 @@ pub type BrowserResponse {
 }
 
 fn decode_base_result(json_str: String) {
-  echo json_str
-
   let success_decoder = {
     use data <- decode.field("data", decode.dynamic)
     decode.success(SuccessResponse(data:))

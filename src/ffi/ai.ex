@@ -26,7 +26,7 @@ defmodule Ai do
 
     {:ok, res} =
       Ollama.completion(client,
-        model: "llama3.2:3b",
+        model: "deepseek-r1:7b",
         prompt:
           "You're an expert information analyst that can give summary of content posted by people/companies on the internet.
         This content can be anything from their future bussiness plans, announcing something new, landing a new job, announcing

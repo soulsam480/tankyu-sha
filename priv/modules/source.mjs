@@ -1,13 +1,47 @@
 export class Source {
+  /** @type {import("playwright").Page} */
+  // @ts-expect-error ignore
+  page
+  /** @type {import("playwright").BrowserContext} */
+  context
+  /** @type {Record<string,string>} */
+  params
+
   /**
-   * @param {import("playwright").Page} page
+   * @param {import("playwright").BrowserContext} page
    * @param {Record<string, string>} params
    */
   constructor(page, params) {
-    /**  @type {import("playwright").Page} */
-    this.page = page
+    /**  @type {import("playwright").BrowserContext} */
+    this.context = page
     /** @type {Record<string,string>} */
     this.params = params
+  }
+
+  /** @returns {Promise<import("playwright").Page>} */
+  async newPage(height = 1080, width = 1920) {
+    const page = await this.context.newPage()
+
+    await page.setViewportSize({
+      height,
+      width
+    })
+
+    return page
+  }
+
+  /**
+   * @param {import("playwright").Locator} loc
+   * @param {(loc: import("playwright").Locator) => Promise<T>} cb
+   * @template T
+   * @returns {Promise<T | null>}
+   */
+  async runLocatorIfVisible(loc, cb) {
+    if (await loc.isVisible()) {
+      return await cb(loc)
+    }
+
+    return null
   }
 
   /**
@@ -38,10 +72,23 @@ export class Source {
     throw new Error('Not implemented')
   }
 
+  async createDefaultPage() {
+    if (!this.page) {
+      this.page = await this.newPage()
+
+      this.page.setViewportSize({
+        height: 1080,
+        width: 1920
+      })
+    }
+  }
+
   /**
    * run prep for this source
    */
   async init() {
+    await this.createDefaultPage()
+
     if (this.requiresLogin) {
       await this.login()
     }
@@ -74,7 +121,9 @@ export class Source {
    */
   async humanType(text) {
     for (const char of text) {
-      await this.page.keyboard.type(char, { delay: 10 + Math.random() * 200 })
+      await this.page.keyboard.type(char, {
+        delay: 10 + Math.random() * 200
+      })
     }
   }
 }

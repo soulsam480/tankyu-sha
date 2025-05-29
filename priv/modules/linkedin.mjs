@@ -74,7 +74,11 @@ export class Linkedin extends Source {
 
     const promises = []
 
-    promises.push(this.#getCompanyAboutInfo(urlInfo))
+    if (urlInfo.isCompany) {
+      promises.push(this.#getCompanyAboutInfo(urlInfo))
+    } else {
+      promises.push(Promise.resolve(null))
+    }
 
     promises.push(this.#getPosts(urlInfo))
 
@@ -83,14 +87,17 @@ export class Linkedin extends Source {
     return JSON.stringify({
       data: {
         posts,
-        companyInfo
+        company_info: companyInfo
       }
     })
   }
 
-  /** @param {LinkedInUrlInfo} urlInfo */
-  async #getPosts(urlInfo) {
-    const page = await this.page.context().newPage()
+  /**
+   * @param {LinkedInUrlInfo} urlInfo
+   * @param {import("playwright").Page |null} page
+   * */
+  async #getPosts(urlInfo, page = null) {
+    page ??= await this.newPage()
 
     if (!urlInfo.feedUrl) {
       throw new RunnerError({
@@ -105,28 +112,142 @@ export class Linkedin extends Source {
 
     await page.waitForSelector('[role="article"]')
 
+    // await page
+    //   .getByRole('button', {
+    //     name: /sort by/i
+    //   })
+    //   .click()
+    //
+    // await page
+    //   .locator('span', {
+    //     hasText: /recent/i
+    //   })
+    //   .first()
+    //   .click({
+    //     force: true
+    //   })
+
     const rows = await page.locator('[role="article"]').all()
 
-    const posts = await Promise.all(
-      rows.map(async (el, index) => {
-        const showMore = el.getByRole('button', {
-          name: /more/i
-        })
+    await page.addScriptTag({
+      url: 'https://unpkg.com/js-harvester@0.3.14/src/harvester.js'
+    })
 
-        if (await showMore.isVisible()) {
-          await showMore.click()
-        }
+    const posts = []
 
-        const content = await el
-          .locator('div[class*="update-components-text"]')
-          .textContent()
+    for (let index = 0; index < 10; index++) {
+      const el = rows[index]
 
-        return {
-          id: index + 1,
-          content
-        }
+      if (!el) {
+        continue
+      }
+
+      await el.scrollIntoViewIfNeeded()
+
+      const showMore = el.getByRole('button', {
+        name: /more/i
       })
-    )
+
+      if (await showMore.isVisible()) {
+        await showMore.click()
+      }
+
+      const [unique_id, content, actor, time_ago, images] = await Promise.all([
+        el.getAttribute('data-urn'),
+        this.runLocatorIfVisible(
+          el.locator('.update-components-text').first(),
+          async loc => {
+            return await loc.evaluate(ele => {
+              ele
+                .querySelectorAll("script,style,link,svg,[src^='data:image/']")
+                .forEach(it => {
+                  it.remove()
+                })
+
+              return (
+                ele.textContent
+                  ?.trim()
+                  // Replace repeated newlines (with optional surrounding spaces) with a single newline
+                  .replace(/(\s*\n\s*){2,}/g, '\n')
+                  // Normalize remaining whitespace (optional: remove extra spaces between words)
+                  .replace(/[ \t]+/g, ' ')
+                  .toLowerCase()
+              )
+            })
+          }
+        ),
+        this.runLocatorIfVisible(
+          el.locator('.update-components-actor__container'),
+          async loc => {
+            return await loc.evaluate(ele => {
+              // @ts-expect-error this is loaded in runtime
+              return harvest(
+                `
+div
+  a[link=profile_url]
+    span
+      span
+        span
+          span{name}
+    span
+      span{description}`,
+                ele,
+                {
+                  dataOnly: true,
+                  inject: true
+                }
+              )
+            })
+          }
+        ),
+        this.runLocatorIfVisible(
+          el.locator(
+            '.update-components-actor__sub-description > span:first-child'
+          ),
+          async loc => {
+            return await loc.evaluate(ele => {
+              return ele.textContent?.trim().split(' ')?.[0]
+            })
+          }
+        ),
+        el.locator('.update-components-image img').evaluateAll(items => {
+          return items
+            .map(it => it.getAttribute('src'))
+            .filter(it => it && !it.startsWith('data'))
+        })
+      ])
+
+      if (actor) {
+        // remove query params
+        actor.profile_url = actor?.profile_url
+          ? actor.profile_url.replace(new URL(actor.profile_url).search, '')
+          : null
+      }
+
+      // const mdContent = contentToMarkdown(index + 1, {
+      //   actor_description: actor.description,
+      //   actor_name: actor.name,
+      //   actor_profile_url: actor.profile_url,
+      //   content: content,
+      //   images: images,
+      //   time_ago: time_ago,
+      //   unique_id: unique_id
+      // })
+
+      if (!content) {
+        continue
+      }
+
+      posts.push({
+        unique_id,
+        // markdown: mdContent,
+        id: index + 1,
+        actor,
+        content,
+        time_ago,
+        images
+      })
+    }
 
     return posts
   }
@@ -187,6 +308,13 @@ section[class*="org-page-details"]
         inject: true
       })
     ])
+
+    detailsData.website_url = detailsData.website_url
+      ? detailsData.website_url.replace(
+          new URL(detailsData.website_url).search,
+          ''
+        )
+      : null
 
     return { ...companyNameData, ...detailsData }
   }
