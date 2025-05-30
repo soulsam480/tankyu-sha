@@ -38,4 +38,35 @@ defmodule Ai do
 
     res
   end
+
+  def get_news_summary(article) do
+    client = Ollama.init()
+
+    {:ok, res} =
+      Ollama.completion(client,
+        model: "deepseek-r1:7b",
+        prompt:
+          "You are an expert analyst trained to summarize and extract key insights from long-form content. Your job is to provide a concise, accurate, and useful overview of the material that is suitable for someone skimming for value.
+
+        Please analyze the following content. Your analysis must be:
+
+        - Clear and concise (ideally 4–7 bullet points)
+        - Focused on the most important insights, arguments, or takeaways
+        - Faithful to the source (do not add or invent information)
+        - Free of repetition or fluff
+        - Written in a neutral, analytical tone
+
+        Content:
+        ===
+" <>
+            article <>
+            "
+        ===
+
+        Now provide your analysis below.
+        "
+      )
+
+    res
+  end
 end

@@ -2,10 +2,9 @@ import ffi/dom
 import gleam/dict
 
 pub type SourceProvider {
-  DuckDuckGo
+  Search
   Feed
   News
-  Blog
 }
 
 pub type Source {

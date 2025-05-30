@@ -112,21 +112,6 @@ export class Linkedin extends Source {
 
     await page.waitForSelector('[role="article"]')
 
-    // await page
-    //   .getByRole('button', {
-    //     name: /sort by/i
-    //   })
-    //   .click()
-    //
-    // await page
-    //   .locator('span', {
-    //     hasText: /recent/i
-    //   })
-    //   .first()
-    //   .click({
-    //     force: true
-    //   })
-
     const rows = await page.locator('[role="article"]').all()
 
     await page.addScriptTag({
@@ -224,16 +209,6 @@ div
           : null
       }
 
-      // const mdContent = contentToMarkdown(index + 1, {
-      //   actor_description: actor.description,
-      //   actor_name: actor.name,
-      //   actor_profile_url: actor.profile_url,
-      //   content: content,
-      //   images: images,
-      //   time_ago: time_ago,
-      //   unique_id: unique_id
-      // })
-
       if (!content) {
         continue
       }
@@ -321,8 +296,6 @@ section[class*="org-page-details"]
 
   async #loginCheck() {
     const loc = this.page.getByRole('button', { name: /sign in/i }).first()
-
-    // await loc.waitFor({ state: 'visible' })
 
     if (await loc.isVisible()) {
       await this.login()

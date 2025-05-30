@@ -4,9 +4,9 @@ import dotenv from 'dotenv'
 import { Linkedin } from './modules/linkedin.mjs'
 import { parseArgs } from 'node:util'
 import { Search } from './modules/search.mjs'
-import { Harvest } from './modules/harvest.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { News } from './modules/news.mjs'
 
 dotenv.config()
 
@@ -16,8 +16,8 @@ const STORAGE_STATE_PATH = path.join(process.cwd(), 'storage_state.json')
 
 const SERVICE_TO_CTOR = {
   LinkedIn: Linkedin,
-  Search: Search,
-  Harvest: Harvest
+  News: News,
+  Search: Search
 }
 
 /** @type {import("playwright").ChromiumBrowser | null} */

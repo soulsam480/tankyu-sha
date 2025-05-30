@@ -147,8 +147,7 @@ pub fn run_app() {
     case ind {
       1 -> source.Feed
       2 -> source.News
-      3 -> source.Blog
-      _ -> source.Blog
+      _ -> source.News
     }
   }
 

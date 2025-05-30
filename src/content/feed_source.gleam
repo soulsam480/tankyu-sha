@@ -47,8 +47,8 @@ fn get_feed_posts(source: source.Source) {
         }
       }
     }
-    un -> {
-      snag.error("Unknown feed type" <> string.inspect(un))
+    feed -> {
+      snag.error("Unknown feed type" <> string.inspect(feed))
     }
   }
 }
