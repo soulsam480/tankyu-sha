@@ -20,76 +20,67 @@ export class News extends Source {
   async process(url) {
     await this.page.goto(url, { waitUntil: 'domcontentloaded' })
 
-    await Promise.all([
-      this.page.addScriptTag({
-        url: 'https://cdn.jsdelivr.net/npm/@mozilla/readability@0.6.0/Readability.min.js'
-      }),
-      this.page.addScriptTag({
-        url: 'https://cdn.jsdelivr.net/npm/@mozilla/readability@0.6.0/Readability-readerable.js'
-      })
-    ])
+    await this.page.addScriptTag({
+      url: 'https://cdn.jsdelivr.net/npm/defuddle@0.6.4'
+    })
 
-    const content = await this.page.evaluate(() => {
+    const result = await this.page.evaluate(() => {
       // @ts-expect-error ignore this available in runtime
-      if (isProbablyReaderable(document)) {
-        // @ts-expect-error ignore this available in runtime
-        const reader = new Readability(document)
-        const article = reader.parse()
+      const reader = new Defuddle(document)
+      const article = reader.parse()
 
-        if (article && article.content) {
-          const dom = new DOMParser().parseFromString(
-            article.content,
-            'text/html'
-          )
+      let sanitizedContent = ''
 
-          dom
-            .querySelectorAll("script, style, link, svg, [src^='data:image/']")
-            .forEach(it => {
-              it.remove()
-            })
+      if (article && article.content) {
+        const dom = new DOMParser().parseFromString(
+          article.content,
+          'text/html'
+        )
 
-          return dom.body.innerHTML
-        }
-
-        document
+        dom
           .querySelectorAll("script, style, link, svg, [src^='data:image/']")
-          .forEach(el => {
-            el.remove()
+          .forEach(it => {
+            it.remove()
           })
 
-        document.querySelectorAll('*').forEach(element => {
-          if ('attribs' in element) {
-            const attributes = element.attributes
+        sanitizedContent = dom.body.innerHTML
+      }
 
-            for (const attr in attributes) {
-              if (attr !== 'href' && attr !== 'src') {
-                element.removeAttribute(attr)
-              }
-            }
-          }
-        })
+      const createdAt = article?.published?.split(',')?.[0]?.trim() ?? null
 
-        const mainContent =
-          document.querySelector('[role="main"]')?.innerHTML ||
-          document.querySelector('main')?.innerHTML ||
-          document.querySelector('article')?.innerHTML ||
-          ''
+      function safeParseDate() {
+        if (!createdAt) return null
 
-        return mainContent
+        try {
+          return new Date(createdAt).toISOString()
+        } catch (_) {
+          return null
+        }
+      }
+
+      // TODO: here we can definitely do something with schema.org data
+      return {
+        content: sanitizedContent,
+        title: article?.title ?? null,
+        published_at: safeParseDate(),
+        domain: article?.domain ?? null,
+        actor: {
+          name: article?.author ?? null
+        }
       }
     })
 
-    const turndownService = new TurnDown({
-      headingStyle: 'atx',
-      codeBlockStyle: 'fenced'
-    })
+    if (result.content) {
+      const turndownService = new TurnDown({
+        headingStyle: 'atx',
+        codeBlockStyle: 'fenced'
+      })
 
-    const markdown = turndownService.turndown(content ?? '')
+      result.content = turndownService.turndown(result.content)
+    }
 
     return JSON.stringify({
-      data: {
-        content: markdown
-      }
+      data: result
     })
   }
 }

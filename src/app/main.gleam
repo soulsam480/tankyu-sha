@@ -1,5 +1,6 @@
 import content/runner
 import content/source
+import ffi/ai
 import ffi/dom
 import gleam/dict
 import gleam/int
@@ -65,7 +66,7 @@ pub fn run_app() {
   )
 
   use search_results <- result.try(
-    internet_search.ddg_search(val <> scope, []) |> error.trap,
+    internet_search.ddg(val <> scope, []) |> error.trap,
   )
 
   let q =
@@ -91,12 +92,8 @@ pub fn run_app() {
       None,
       None,
       Some(fn(s) {
-        let ind = int.parse(s)
-
-        case ind {
-          Ok(val) -> {
-            val < list.length(search_results)
-          }
+        case int.parse(s) {
+          Ok(val) -> val < list.length(search_results)
           Error(_) -> False
         }
       }),
@@ -128,12 +125,8 @@ pub fn run_app() {
         let ind = int.parse(s)
 
         case ind {
-          Ok(val) -> {
-            val < 3
-          }
-          _ -> {
-            False
-          }
+          Ok(val) -> val < 3
+          _ -> False
         }
       }),
       None,
@@ -151,11 +144,10 @@ pub fn run_app() {
     }
   }
 
-  let assert Ok(source) = source.new(opt_val, "linkedin", source_type)
+  let assert Ok(source) = source.new(opt_val, source_type)
 
-  echo source
+  use content <- result.try(runner.run(source))
+  use _ <- result.try(ai.analyse(ai.ContentAnalysis, content))
 
-  let _ = runner.run(source) |> echo
-
-  Ok(source)
+  Ok(Nil)
 }

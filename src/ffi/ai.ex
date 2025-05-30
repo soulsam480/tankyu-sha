@@ -44,27 +44,27 @@ defmodule Ai do
 
     {:ok, res} =
       Ollama.completion(client,
-        model: "deepseek-r1:7b",
+        # model: "deepseek-r1:7b",
+        model: "llama3.2:3b",
         prompt:
-          "You are an expert analyst trained to summarize and extract key insights from long-form content. Your job is to provide a concise, accurate, and useful overview of the material that is suitable for someone skimming for value.
+          "You are an analyst trained to create accessible summaries of complex news content.
 
-        Please analyze the following content. Your analysis must be:
+        Summarize the following article for a general audience. Your summary should:
+        - Use 4–7 concise bullet points
+        - Be written in clear, plain language
+        - Avoid jargon, speculation, or exaggeration
+        - Capture only the most important facts or arguments
+        - Avoid quoting or citing specific people unless necessary
+        - If a claim is disputed, mention that it's disputed. Avoid emotionally charged language or analogies unless directly quoted and clearly attributed.
 
-        - Clear and concise (ideally 4–7 bullet points)
-        - Focused on the most important insights, arguments, or takeaways
-        - Faithful to the source (do not add or invent information)
-        - Free of repetition or fluff
-        - Written in a neutral, analytical tone
+        Use this example as a format:
 
-        Content:
-        ===
-" <>
-            article <>
-            "
-        ===
+        - The report found that only 40% of the budget was spent as planned.
+        - Experts believe delays were caused by supply chain issues.
+        - The government has not responded to the findings yet.
 
-        Now provide your analysis below.
-        "
+        Now summarize the article below:
+" <> article
       )
 
     res

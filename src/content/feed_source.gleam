@@ -4,7 +4,6 @@ import gleam/dynamic/decode
 import gleam/int
 import gleam/list
 import gleam/option
-import gleam/regexp
 import gleam/result
 import gleam/string
 import gleam/string_tree
@@ -54,12 +53,7 @@ fn get_feed_posts(source: source.Source) {
 }
 
 fn feed_kind(source: source.Source) {
-  use linkedin_regex <- result.try(
-    regexp.from_string("linkedin.com")
-    |> error.map_to_snag("Linkedin regex error"),
-  )
-
-  case regexp.check(linkedin_regex, source.url) {
+  case string.contains(source.url, "linkedin.com") {
     True -> Ok(LinkedIn)
     False -> Ok(Unknown)
   }
@@ -81,11 +75,7 @@ fn post_decoder() -> decode.Decoder(Post) {
 
   use actor_name <- decode.subfield(
     ["actor"],
-    decode.optionally_at(
-      ["actor_name"],
-      option.None,
-      decode.optional(decode.string),
-    ),
+    decode.optionally_at(["name"], option.None, decode.optional(decode.string)),
   )
 
   use actor_description <- decode.subfield(
@@ -181,7 +171,7 @@ pub fn linked_in_to_md(resp: LinkedInResponse) {
   |> list.fold(response, fn(builder, post) {
     string_tree.append(builder, "\n")
     |> string_tree.append("## Post " <> post.id |> int.to_string <> "\n")
-    |> string_tree.append("### From actor\n")
+    |> string_tree.append("### Posted by\n")
     |> string_tree.append(
       "- name: " <> post.actor_name |> option.unwrap("Unknown") <> "\n",
     )
@@ -193,7 +183,7 @@ pub fn linked_in_to_md(resp: LinkedInResponse) {
     |> string_tree.append("### Content\n")
     |> string_tree.append(post.content <> "\n")
     |> string_tree.append(
-      "was posted" <> post.time_ago |> option.unwrap("Unknown"),
+      "was posted " <> post.time_ago |> option.unwrap("Unknown") <> " ago",
     )
   })
   |> string_tree.to_string()

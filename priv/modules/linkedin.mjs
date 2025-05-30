@@ -61,10 +61,64 @@ export class Linkedin extends Source {
   async process(url) {
     const urlInfo = new LinkedInUrlInfo(url)
 
-    if (urlInfo.isUnknown || !urlInfo.feedUrl) {
+    if (urlInfo.isUnknown) {
       throw new RunnerError({
         type: 'UNKNOWN_LINKEDIN_KIND',
-        details: 'Unknown LinkedIn kind or feed URL is not available.'
+        details: 'Unknown LinkedIn kind is not available.'
+      })
+    }
+
+    if (urlInfo.isStandalonePost) {
+      return this.#processPost(urlInfo)
+    }
+
+    return this.#processFeed(urlInfo)
+  }
+
+  /** @param {LinkedInUrlInfo} urlInfo */
+  async #processPost(urlInfo) {
+    await this.page.goto(urlInfo.originalUrl, {
+      waitUntil: 'domcontentloaded'
+    })
+
+    if (!(await this.#loginCheck())) {
+      await this.page.goto(urlInfo.originalUrl, {
+        waitUntil: 'domcontentloaded'
+      })
+    }
+
+    await this.page.addScriptTag({
+      url: 'https://unpkg.com/js-harvester@0.3.14/src/harvester.js'
+    })
+
+    await this.page.waitForSelector('[role="article"]')
+
+    const posts = []
+
+    /** @type {Post|null} */
+    const post = await this.#fetchPost(
+      this.page.locator('[role="article"]').first()
+    )
+
+    if (post) {
+      post.id = 1
+      posts.push(post)
+    }
+
+    return JSON.stringify({
+      data: {
+        company_info: null,
+        posts
+      }
+    })
+  }
+
+  /** @param {LinkedInUrlInfo} urlInfo */
+  async #processFeed(urlInfo) {
+    if (!urlInfo.feedUrl) {
+      throw new RunnerError({
+        type: 'INVALID_FEED_URL',
+        details: 'Feed URL is not available in urlInfo.'
       })
     }
 
@@ -129,98 +183,15 @@ export class Linkedin extends Source {
 
       await el.scrollIntoViewIfNeeded()
 
-      const showMore = el.getByRole('button', {
-        name: /more/i
-      })
+      const post = await this.#fetchPost(el)
 
-      if (await showMore.isVisible()) {
-        await showMore.click()
-      }
-
-      const [unique_id, content, actor, time_ago, images] = await Promise.all([
-        el.getAttribute('data-urn'),
-        this.runLocatorIfVisible(
-          el.locator('.update-components-text').first(),
-          async loc => {
-            return await loc.evaluate(ele => {
-              ele
-                .querySelectorAll("script,style,link,svg,[src^='data:image/']")
-                .forEach(it => {
-                  it.remove()
-                })
-
-              return (
-                ele.textContent
-                  ?.trim()
-                  // Replace repeated newlines (with optional surrounding spaces) with a single newline
-                  .replace(/(\s*\n\s*){2,}/g, '\n')
-                  // Normalize remaining whitespace (optional: remove extra spaces between words)
-                  .replace(/[ \t]+/g, ' ')
-                  .toLowerCase()
-              )
-            })
-          }
-        ),
-        this.runLocatorIfVisible(
-          el.locator('.update-components-actor__container'),
-          async loc => {
-            return await loc.evaluate(ele => {
-              // @ts-expect-error this is loaded in runtime
-              return harvest(
-                `
-div
-  a[link=profile_url]
-    span
-      span
-        span
-          span{name}
-    span
-      span{description}`,
-                ele,
-                {
-                  dataOnly: true,
-                  inject: true
-                }
-              )
-            })
-          }
-        ),
-        this.runLocatorIfVisible(
-          el.locator(
-            '.update-components-actor__sub-description > span:first-child'
-          ),
-          async loc => {
-            return await loc.evaluate(ele => {
-              return ele.textContent?.trim().split(' ')?.[0]
-            })
-          }
-        ),
-        el.locator('.update-components-image img').evaluateAll(items => {
-          return items
-            .map(it => it.getAttribute('src'))
-            .filter(it => it && !it.startsWith('data'))
-        })
-      ])
-
-      if (actor) {
-        // remove query params
-        actor.profile_url = actor?.profile_url
-          ? actor.profile_url.replace(new URL(actor.profile_url).search, '')
-          : null
-      }
-
-      if (!content) {
+      if (!post) {
         continue
       }
 
       posts.push({
-        unique_id,
-        // markdown: mdContent,
-        id: index + 1,
-        actor,
-        content,
-        time_ago,
-        images
+        ...post,
+        id: index + 1
       })
     }
 
@@ -300,9 +271,106 @@ section[class*="org-page-details"]
     if (await loc.isVisible()) {
       await this.login()
 
-      return true
+      return false
     }
 
-    return false
+    return true
+  }
+
+  /** @param {import("playwright").Locator} el */
+  async #fetchPost(el) {
+    const showMore = el.getByRole('button', {
+      name: /more/i
+    })
+
+    if (await showMore.isVisible()) {
+      await showMore.click()
+    }
+
+    const [unique_id, content, actor, time_ago, images] = await Promise.all([
+      el.getAttribute('data-urn'),
+      this.runLocatorIfVisible(
+        el.locator('.update-components-text').first(),
+        async loc => {
+          return await loc.evaluate(ele => {
+            ele
+              .querySelectorAll("script,style,link,svg,[src^='data:image/']")
+              .forEach(it => {
+                it.remove()
+              })
+
+            return (
+              ele.textContent
+                ?.trim()
+                // Replace repeated newlines (with optional surrounding spaces) with a single newline
+                .replace(/(\s*\n\s*){2,}/g, '\n')
+                // Normalize remaining whitespace (optional: remove extra spaces between words)
+                .replace(/[ \t]+/g, ' ')
+                .toLowerCase()
+            )
+          })
+        }
+      ),
+      this.runLocatorIfVisible(
+        el.locator('.update-components-actor__container').first(),
+        async loc => {
+          return await loc.evaluate(ele => {
+            // @ts-expect-error this is loaded in runtime
+            return harvest(
+              `
+div
+  a[link=profile_url]
+    span
+      span
+        span
+          span{name}
+    span
+      span{description}`,
+              ele,
+              {
+                dataOnly: true,
+                inject: true
+              }
+            )
+          })
+        }
+      ),
+      this.runLocatorIfVisible(
+        el
+          .locator(
+            '.update-components-actor__sub-description > span:first-child'
+          )
+          .first(),
+        async loc => {
+          return await loc.evaluate(ele => {
+            return ele.textContent?.trim().split(' ')?.[0]
+          })
+        }
+      ),
+      el.locator('.update-components-image img').evaluateAll(items => {
+        return items
+          .map(it => it.getAttribute('src'))
+          .filter(it => it && !it.startsWith('data'))
+      })
+    ])
+
+    if (actor) {
+      // remove query params
+      actor.profile_url = actor?.profile_url
+        ? actor.profile_url.replace(new URL(actor.profile_url).search, '')
+        : null
+    }
+
+    if (!content) {
+      return null
+    }
+
+    return {
+      unique_id,
+      actor,
+      content,
+      time_ago,
+      images
+    }
   }
 }

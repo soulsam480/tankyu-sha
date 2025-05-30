@@ -13,7 +13,9 @@ import lib/error
 import services/browser
 import snag
 
-pub fn ddg_simple_search(
+/// Duck Duck go simple search
+/// can get rate limited or IP banned
+pub fn ddg_simple(
   term: String,
 ) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
   use req <- result.try(
@@ -84,6 +86,7 @@ pub fn ddg_simple_search(
   }
 }
 
+/// Duck Duck go internet search
 /// d,m,h,y
 pub type DdgParam {
   Pages(count: String)
@@ -113,7 +116,7 @@ fn ddg_pages(pages: List(DdgParam)) -> String {
 }
 
 /// available values for range -> h,d,m,y
-pub fn ddg_search(
+pub fn ddg(
   term: String,
   params: List(DdgParam),
 ) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
@@ -123,7 +126,7 @@ pub fn ddg_search(
         <> term
         <> "&ia=web"
         <> ddg_query_params(params),
-      ["--debug", "--no-headless", "--kind=Search", ddg_pages(params)],
+      ["--kind=Search", ddg_pages(params)],
     ),
   )
 
@@ -160,9 +163,4 @@ pub fn ddg_search(
       Ok([])
     }
   }
-}
-
-pub fn main() {
-  let _ =
-    ddg_search("ai news india articles and startups", [Range("h")]) |> echo
 }

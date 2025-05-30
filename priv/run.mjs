@@ -89,10 +89,19 @@ async function main() {
     context.route('**/*', (route, req) => {
       const url = req.url()
 
+      // NOTE: we're responding with dummy css so client
+      // rendered apps continue to work when stylesheets are
+      // injectsed dynamically to the page with link tags
+      if (req.resourceType() === 'stylesheet') {
+        return route.fulfill({
+          status: 200,
+          contentType: 'text/css',
+          body: '/* dummy css */\nbody { margin: 0px }'
+        })
+      }
+
       if (
-        ['image', 'stylesheet', 'font'].includes(
-          route.request().resourceType()
-        ) ||
+        ['image', 'font', 'media'].includes(route.request().resourceType()) ||
         url.includes('googletagmanager') ||
         url.includes('doubleclick')
       ) {
@@ -111,6 +120,10 @@ async function main() {
           JSON.stringify(storageState, null, 2)
         )
       } catch (_) {}
+
+      if (!browser?.isConnected()) {
+        return
+      }
 
       await context?.close()
       await browser?.close()
@@ -159,6 +172,10 @@ main()
 
 process.on('SIGINT', async () => {
   try {
+    if (!browser?.isConnected()) {
+      return
+    }
+
     await browser?.close()
   } finally {
   }
@@ -166,6 +183,10 @@ process.on('SIGINT', async () => {
 
 process.on('exit', async () => {
   try {
+    if (!browser?.isConnected()) {
+      return
+    }
+
     await browser?.close()
   } finally {
   }
