@@ -2,6 +2,11 @@
 
 > seeker in japaneesse
 
+## How to run ?
+
+- after setting up gleam, clone this repo
+- run `gleam run` and follow through the CLI app
+
 ## Plan
 
 ### initial interaction
