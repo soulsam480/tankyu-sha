@@ -87,18 +87,30 @@ pub fn ddg_simple(
 }
 
 /// Duck Duck go internet search
-/// d,m,h,y
+/// Range -> d,m,h,y
+/// Pages -> any integer, larger the count slower the results fetching
+/// Section -> news, web
 pub type DdgParam {
   Pages(count: String)
   Range(from: String)
+  Section(in: String)
 }
 
 fn ddg_query_params(params: List(DdgParam)) -> String {
   list.fold(params, string_tree.new(), fn(builder, param) {
     case param {
       Range(from) -> {
-        builder |> string_tree.append("&df=") |> string_tree.append(from)
+        builder
+        |> string_tree.append("&df=" <> from)
+        |> string_tree.append("&ndf=" <> from)
       }
+
+      Section(in) -> {
+        builder
+        |> string_tree.append("&ia=" <> in)
+        |> string_tree.append("&iar=" <> in)
+      }
+
       _ -> builder
     }
   })
@@ -115,16 +127,59 @@ fn ddg_pages(pages: List(DdgParam)) -> String {
   |> result.unwrap("--pages=1")
 }
 
+pub type SearchResult {
+  SearchResult(
+    id: String,
+    title: String,
+    description: String,
+    link: option.Option(String),
+    published_at: option.Option(String),
+    publisher: option.Option(String),
+  )
+}
+
+fn search_result_decoder() -> decode.Decoder(SearchResult) {
+  use id <- decode.field("id", decode.string)
+  use title <- decode.field("title", decode.string)
+  use description <- decode.field("description", decode.string)
+
+  use link <- decode.optional_field(
+    "link",
+    option.None,
+    decode.optional(decode.string),
+  )
+
+  use published_at <- decode.optional_field(
+    "published_at",
+    option.None,
+    decode.optional(decode.string),
+  )
+
+  use publisher <- decode.optional_field(
+    "publisher",
+    option.None,
+    decode.optional(decode.string),
+  )
+
+  decode.success(SearchResult(
+    id:,
+    title:,
+    description:,
+    link:,
+    published_at:,
+    publisher:,
+  ))
+}
+
 /// available values for range -> h,d,m,y
 pub fn ddg(
   term: String,
   params: List(DdgParam),
-) -> Result(List(dict.Dict(dom.Key, String)), snag.Snag) {
+) -> Result(List(SearchResult), snag.Snag) {
   use response <- result.try(
     browser.load(
       "https://duckduckgo.com?q="
-        <> term
-        <> "&ia=web"
+        <> uri.percent_encode(term)
         <> ddg_query_params(params),
       ["--kind=Search", ddg_pages(params)],
     ),
@@ -132,28 +187,8 @@ pub fn ddg(
 
   case response {
     browser.SuccessResponse(data) -> {
-      let search_results_decoder = {
-        use id <- decode.field("id", decode.string)
-        use link <- decode.field("link", decode.optional(decode.string))
-        use title <- decode.field("title", decode.string)
-        use description <- decode.field("description", decode.string)
-
-        decode.success(
-          dict.new()
-          |> dict.insert(dom.Id, id)
-          |> dict.insert(dom.Title, title)
-          |> dict.insert(dom.Description, description)
-          |> dict.insert(dom.Link, {
-            case link {
-              option.Some(val) -> val
-              _ -> ""
-            }
-          }),
-        )
-      }
-
       use results <- result.try(
-        decode.run(data, decode.list(search_results_decoder))
+        decode.run(data, decode.list(search_result_decoder()))
         |> error.map_to_snag("Unable to decode search results"),
       )
 
@@ -163,4 +198,8 @@ pub fn ddg(
       Ok([])
     }
   }
+}
+
+pub fn main() {
+  let _ = ddg("india ai news", []) |> echo
 }

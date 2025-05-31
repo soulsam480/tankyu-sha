@@ -1,5 +1,5 @@
-import ffi/dom
 import gleam/dict
+import gleam/option
 
 pub type SourceProvider {
   Search
@@ -11,9 +11,9 @@ pub type Source {
   Source(provider: SourceProvider, url: String, meta: dict.Dict(String, String))
 }
 
-pub fn new(res: dict.Dict(dom.Key, String), kind: SourceProvider) {
-  case dict.get(res, dom.Link) {
-    Ok(val) -> {
+pub fn new(url: option.Option(String), kind: SourceProvider) {
+  case url {
+    option.Some(val) -> {
       Ok(Source(kind, val, dict.new()))
     }
     _ -> {

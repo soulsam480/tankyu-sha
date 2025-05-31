@@ -1,8 +1,6 @@
 import content/runner
 import content/source
 import ffi/ai
-import ffi/dom
-import gleam/dict
 import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
@@ -71,9 +69,7 @@ pub fn run_app() {
 
   let q =
     list.fold(search_results, string_tree.new(), fn(builder, it) {
-      let assert Ok(title) = dict.get(it, dom.Title)
-      let assert Ok(index) = dict.get(it, dom.Id)
-      let assert Ok(link) = dict.get(it, dom.Link)
+      let internet_search.SearchResult(title, index, link, ..) = it
 
       builder
       |> string_tree.append(index)
@@ -103,12 +99,7 @@ pub fn run_app() {
   )
 
   use opt_val <- result.try(
-    list.find(search_results, fn(it) {
-      case dict.get(it, dom.Id) {
-        Ok(val) -> val == opt
-        _ -> False
-      }
-    })
+    list.find(search_results, fn(it) { it.id == opt })
     |> error.map_to_snag("Invalid option")
     |> error.trap,
   )
@@ -144,7 +135,7 @@ pub fn run_app() {
     }
   }
 
-  let assert Ok(source) = source.new(opt_val, source_type)
+  let assert Ok(source) = source.new(opt_val.link, source_type)
 
   use content <- result.try(runner.run(source))
   use _ <- result.try(ai.analyse(ai.ContentAnalysis, content))

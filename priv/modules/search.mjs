@@ -1,4 +1,9 @@
+import { RunnerError } from '../lib/error.mjs'
 import { Source } from './source.mjs'
+// @ts-expect-error no types
+import { harvestPageAll } from 'js-harvester/playwright.js'
+// @ts-expect-error no types
+import fixTime from 'fix-time'
 
 export class Search extends Source {
   get requiresLogin() {
@@ -47,23 +52,76 @@ export class Search extends Source {
       await this.page.keyboard.press('Enter')
     }
 
-    await this.page.waitForSelector('.react-results--main')
+    const pageURL = new URL(this.page.url())
 
-    if (pages > 1) {
-      for (let page = 1; page <= pages; page++) {
-        await this.page
-          .getByRole('button', {
-            name: /more\sresults/i
-          })
-          .first()
-          .click()
+    const section = pageURL.searchParams.get('ia') ?? 'web'
 
-        await this.page.waitForResponse(url => {
-          return url.url().includes('links.duckduckgo.com/d.js')
+    switch (section) {
+      case 'news':
+        await this.page.waitForSelector('article section ol')
+        break
+
+      case 'web':
+        await this.page.waitForSelector('.react-results--main')
+        break
+
+      default:
+        throw new RunnerError({
+          type: 'InvalidSection',
+          details: `${section} is not a valid section`
         })
-      }
     }
 
+    await this.#paginate(pages, section)
+
+    switch (section) {
+      case 'news':
+        return await this.#fetchNewsResults()
+
+      default:
+        return await this.#fetchSearchResults()
+    }
+  }
+
+  async #fetchNewsResults() {
+    const resultTpl = `
+li
+  a[link=href]
+    *
+      h2{title}
+      div
+        div
+          span{publisher}
+        div{published_at}
+      div
+        p{description:str}`
+
+    const results = await harvestPageAll(
+      this.page,
+      resultTpl,
+      'article section ol li',
+      {
+        dataOnly: true,
+        inject: true
+      }
+    )
+
+    return JSON.stringify({
+      // @ts-expect-error ignore types here
+      data: results.map(({ published_at: at, description, ...rest }, index) => {
+        return {
+          ...rest,
+          id: index.toString(),
+          published_at: fixTime(at).toISOString(),
+          description: Array.isArray(description)
+            ? description.join(' ')
+            : description
+        }
+      })
+    })
+  }
+
+  async #fetchSearchResults() {
     const results = await this.page
       .locator('.react-results--main li[data-layout="organic"]')
       .all()
@@ -88,5 +146,52 @@ export class Search extends Source {
     )
 
     return JSON.stringify({ data: outcome })
+  }
+
+  /**
+   * @param {number} pages
+   * @param {string} section
+   */
+  async #paginate(pages, section) {
+    if (pages > 1) {
+      for (let page = 1; page <= pages; page++) {
+        switch (section) {
+          case 'news':
+            {
+              const loc = this.page
+                .getByRole('button', {
+                  name: /load\smore/i
+                })
+                .first()
+
+              if (await loc.isVisible()) {
+                await loc.click()
+              }
+
+              await this.page.waitForResponse(url => {
+                return url.url().includes('links.duckduckgo.com/news.js')
+              })
+            }
+
+            break
+
+          default: {
+            const loc = this.page
+              .getByRole('button', {
+                name: /more\sresults/i
+              })
+              .first()
+
+            if (await loc.isVisible()) {
+              await loc.click()
+            }
+
+            await this.page.waitForResponse(url => {
+              return url.url().includes('links.duckduckgo.com/d.js')
+            })
+          }
+        }
+      }
+    }
   }
 }
