@@ -199,7 +199,3 @@ pub fn ddg(
     }
   }
 }
-
-pub fn main() {
-  let _ = ddg("india ai news", []) |> echo
-}

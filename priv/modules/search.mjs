@@ -107,17 +107,21 @@ li
     )
 
     return JSON.stringify({
-      // @ts-expect-error ignore types here
-      data: results.map(({ published_at: at, description, ...rest }, index) => {
-        return {
-          ...rest,
-          id: index.toString(),
-          published_at: fixTime(at).toISOString(),
-          description: Array.isArray(description)
-            ? description.join(' ')
-            : description
+      data: results.map(
+        // @ts-expect-error ignore types here
+        ({ published_at: at, description, title, ...rest }, index) => {
+          return {
+            ...rest,
+            id: index.toString(),
+            published_at: fixTime(at).toISOString(),
+            title: title.toLowerCase(),
+            description: (Array.isArray(description)
+              ? description.join(' ')
+              : description
+            ).toLowerCase()
+          }
         }
-      })
+      )
     })
   }
 

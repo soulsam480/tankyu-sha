@@ -9,7 +9,9 @@
 
 ## Plan
 
-### initial interaction
+I've updated the plan a bit here [plan.md](plan.md)
+
+### initial interaction (OLD from here)
 
 - give it some keywords
   - 10 minute delivery <- any point of interest, not necessarily specific
