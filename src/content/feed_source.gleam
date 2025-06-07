@@ -146,11 +146,9 @@ fn linked_in_response_decoder(data: dynamic.Dynamic) {
 }
 
 pub fn linked_in_to_md(resp: LinkedInResponse) {
-  let response = string_tree.new()
-
-  case resp.company_info {
+  let response = case resp.company_info {
     option.Some(company_info) -> {
-      response
+      string_tree.new()
       |> string_tree.append("## Company Info \n")
       |> string_tree.append("- name: " <> company_info.overview <> "\n")
       |> string_tree.append("- description: " <> company_info.overview <> "\n")
@@ -159,11 +157,9 @@ pub fn linked_in_to_md(resp: LinkedInResponse) {
         <> company_info.website_url |> option.unwrap("Unknown")
         <> "\n",
       )
-
-      Nil
     }
     option.None -> {
-      Nil
+      string_tree.new()
     }
   }
 
