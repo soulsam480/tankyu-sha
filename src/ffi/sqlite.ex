@@ -22,6 +22,7 @@ defmodule Sqlite do
     case Exqlite.Basic.exec(conn, query, params) do
       {:ok, _, res, _} -> {:ok, res}
       {:error, reason} -> {:error, reason}
+      e -> {:error, e}
     end
   end
 

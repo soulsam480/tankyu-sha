@@ -7,3 +7,15 @@ gleam = "latest"
 [tasks.browser]
 description = "Run browser scripts"
 run = "cd browser && bun dev"
+
+[tasks."migrate:new"]
+description = "Create a new migration file"
+run = "dbmate new"
+
+[tasks."migrate:up"]
+description = "Run all migrations"
+run = "dbmate up"
+
+[tasks."migrate:down"]
+description = "Rollback all migrations"
+run = "dbmate rollback"

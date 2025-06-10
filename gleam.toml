@@ -28,6 +28,7 @@ gleam_erlang = ">= 0.34.0 and < 1.0.0"
 gleam_otp = ">= 0.16.1 and < 1.0.0"
 sqlite_vec = ">= 0.1.0 and < 1.0.0"
 exqlite = ">= 0.31.0 and < 1.0.0"
+simplifile = ">= 2.2.1 and < 3.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

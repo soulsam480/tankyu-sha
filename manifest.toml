@@ -9,6 +9,7 @@ packages = [
   { name = "elixir_make", version = "0.9.0", build_tools = ["mix"], requirements = [], otp_app = "elixir_make", source = "hex", outer_checksum = "DB23D4FD8B757462AD02F8AA73431A426FE6671C80B200D9710CAF3D1DD0FFDB" },
   { name = "envoy", version = "1.0.2", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "envoy", source = "hex", outer_checksum = "95FD059345AA982E89A0B6E2A3BF1CF43E17A7048DCD85B5B65D3B9E4E39D359" },
   { name = "exqlite", version = "0.31.0", build_tools = ["mix", "make"], requirements = ["cc_precompiler", "db_connection", "elixir_make", "table"], otp_app = "exqlite", source = "hex", outer_checksum = "DF352DE99BA4CE1BAC2AD4943D09DBE9AD59E0E7ACE55917B493AE289C78FC75" },
+  { name = "filepath", version = "1.1.2", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "filepath", source = "hex", outer_checksum = "B06A9AF0BF10E51401D64B98E4B627F1D2E48C154967DA7AF4D0914780A6D40A" },
   { name = "finch", version = "0.19.0", build_tools = ["mix"], requirements = ["mime", "mint", "nimble_options", "nimble_pool", "telemetry"], otp_app = "finch", source = "hex", outer_checksum = "FC5324CE209125D1E2FA0FCD2634601C52A787AFF1CD33EE833664A5AF4EA2B6" },
   { name = "floki", version = "0.37.1", build_tools = ["mix"], requirements = [], otp_app = "floki", source = "hex", outer_checksum = "673D040CB594D31318D514590246B6DD587ED341D3B67E17C1C0EB8CE7CA6F04" },
   { name = "gleam_erlang", version = "0.34.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_erlang", source = "hex", outer_checksum = "0C38F2A128BAA0CEF17C3000BD2097EB80634E239CE31A86400C4416A5D0FDCC" },
@@ -36,6 +37,7 @@ packages = [
   { name = "plug_crypto", version = "2.1.1", build_tools = ["mix"], requirements = [], otp_app = "plug_crypto", source = "hex", outer_checksum = "6470BCE6FFE41C8BD497612FFDE1A7E4AF67F36A15EEA5F921AF71CF3E11247C" },
   { name = "req", version = "0.5.10", build_tools = ["mix"], requirements = ["brotli", "ezstd", "finch", "jason", "mime", "nimble_csv", "plug"], otp_app = "req", source = "hex", outer_checksum = "8A604815743F8A2D3B5DE0659FA3137FA4B1CFFD636ECB69B30B2B9B2C2559BE" },
   { name = "shellout", version = "1.7.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "shellout", source = "hex", outer_checksum = "1BDC03438FEB97A6AF3E396F4ABEB32BECF20DF2452EC9A8C0ACEB7BDDF70B14" },
+  { name = "simplifile", version = "2.2.1", build_tools = ["gleam"], requirements = ["filepath", "gleam_stdlib"], otp_app = "simplifile", source = "hex", outer_checksum = "C88E0EE2D509F6D86EB55161D631657675AA7684DAB83822F7E59EB93D9A60E3" },
   { name = "snag", version = "1.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "snag", source = "hex", outer_checksum = "7E9F06390040EB5FAB392CE642771484136F2EC103A92AE11BA898C8167E6E17" },
   { name = "sqlite_vec", version = "0.1.0", build_tools = ["mix"], requirements = ["ecto", "nx", "octo_fetch"], otp_app = "sqlite_vec", source = "hex", outer_checksum = "01078301B9162D67272037E8C8C9A5C9082ECF80A37796AD39930CF620140226" },
   { name = "ssl_verify_fun", version = "1.1.7", build_tools = ["mix", "rebar3", "make"], requirements = [], otp_app = "ssl_verify_fun", source = "hex", outer_checksum = "FE4C190E8F37401D30167C8C405EDA19469F34577987C76DDE613E838BBC67F8" },
@@ -58,6 +60,7 @@ gleam_stdlib = { version = ">= 0.59.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
 ollama = { version = ">= 0.8.0 and < 1.0.0" }
 shellout = { version = ">= 1.6.0 and < 2.0.0" }
+simplifile = { version = ">= 2.2.1 and < 3.0.0" }
 snag = { version = ">= 1.1.0 and < 2.0.0" }
 sqlite_vec = { version = ">= 0.1.0 and < 1.0.0" }
 survey = { version = ">= 0.3.0 and < 1.0.0" }
