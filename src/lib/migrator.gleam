@@ -1,3 +1,6 @@
+import argv
+import clip
+import clip/help
 import ffi/sqlite
 import gleam/dynamic/decode
 import gleam/erlang
@@ -248,4 +251,32 @@ pub fn run(op: MigrationOp) {
   }
 
   Ok(Nil)
+}
+
+fn up_command() -> clip.Command(MigrationOp) {
+  clip.return(Up)
+  |> clip.help(help.simple("up", "Run all migrations"))
+}
+
+fn down_command() -> clip.Command(MigrationOp) {
+  clip.return(Down)
+  |> clip.help(help.simple("down", "Rollback all migrations"))
+}
+
+fn command() -> clip.Command(MigrationOp) {
+  clip.subcommands([#("up", up_command()), #("down", down_command())])
+}
+
+pub fn main() {
+  let result =
+    command()
+    |> clip.run(argv.load().arguments)
+
+  case result {
+    Error(e) -> io.println_error(e)
+    Ok(op) -> {
+      let _ = run(op)
+      Nil
+    }
+  }
 }
