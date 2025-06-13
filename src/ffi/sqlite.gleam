@@ -1,8 +1,10 @@
+import envoy
 import gleam/dict
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/list
 import gleam/result
+import gleam/string
 import lib/error
 import snag
 
@@ -85,7 +87,7 @@ pub fn bool(val: Bool) -> Value {
 @external(erlang, "Elixir.Sqlite", "bind")
 pub fn string(val: String) -> Value
 
-@external(erlang, "Elixir.Sqlite", "bind_null")
+@external(erlang, "Elixir.Sqlite", "bind_nil")
 pub fn null() -> Value
 
 pub fn decode_bool() -> decode.Decoder(Bool) {
@@ -95,4 +97,9 @@ pub fn decode_bool() -> decode.Decoder(Bool) {
     0 -> decode.success(False)
     _ -> decode.success(True)
   }
+}
+
+pub fn db_path() {
+  let env = envoy.get("APP_ENV") |> result.unwrap("development")
+  env <> ".sqlite3"
 }

@@ -8,3 +8,4 @@ dist
 .env
 storage_state.json
 development.sqlite3
+.opencode

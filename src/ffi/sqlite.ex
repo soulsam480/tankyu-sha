@@ -1,9 +1,14 @@
+@moduledoc """
+taken from https://github.com/joelpaulkoch/sqlite_vec/blob/main/lib/sqlite_vec.ex
+"""
 defmodule Sqlite do
   def open(path) do
+    download_ext()
+
     case Exqlite.Basic.open(path) do
       {:ok, conn} ->
         Exqlite.Basic.enable_load_extension(conn)
-        Exqlite.Basic.load_extension(conn, SqliteVec.path())
+        Exqlite.Basic.load_extension(conn, ext_path())
         {:ok, %{conn: conn}}
 
       {:error, reason} ->
@@ -33,5 +38,16 @@ defmodule Sqlite do
   def bind_nil() do
     nil
   end
-end
 
+  def ext_path do
+    Application.app_dir(:tankyu_sha, "sqlite_vec/0.1.6/vec0")
+  end
+
+  def download_ext do
+    if !File.exists?(ext_path()) do
+      File.mkdir_p(Path.dirname(ext_path()))
+    end
+
+    SqliteDownloader.download(Path.dirname(ext_path()))
+  end
+end

@@ -1,4 +1,4 @@
-import app/main
+import app/legacy
 import lib/error
 
 pub fn main() {
@@ -21,5 +21,5 @@ pub fn main() {
   //
   // echo results
 
-  main.run_app() |> error.trap
+  legacy.run_app() |> error.trap
 }

@@ -1,4 +1,6 @@
 import gleam/dict
+import gleam/dynamic
+import gleam/option.{type Option}
 import lib/error
 
 // src/ffi/dom.ex
@@ -31,4 +33,14 @@ pub fn analyse(op: Operation, payload: String) {
     }
   }
   |> error.map_to_snag("Unable to run analysis")
+}
+
+@external(erlang, "Elixir.Ai", "embed")
+fn do_embed(
+  input: List(String),
+  model: String,
+) -> Result(dict.Dict(String, List(List(Float))), dynamic.Dynamic)
+
+pub fn embed(input: List(String), model: Option(String)) {
+  do_embed(input, option.unwrap(model, "nomic-embed-text:latest"))
 }

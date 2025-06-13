@@ -4,18 +4,14 @@ elixir = "latest"
 erlang = "27.0"
 gleam = "latest"
 
-[tasks.browser]
-description = "Run browser scripts"
-run = "cd browser && bun dev"
-
 [tasks."migrate:new"]
 description = "Create a new migration file"
-run = "dbmate new"
+run = "gleam run -m lib/migrator -- new"
 
 [tasks."migrate:up"]
 description = "Run all migrations"
-run = "dbmate up"
+run = "gleam run -m lib/migrator -- up"
 
 [tasks."migrate:down"]
 description = "Rollback all migrations"
-run = "dbmate rollback"
+run = "gleam run -m lib/migrator -- down"

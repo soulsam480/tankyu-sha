@@ -18,6 +18,7 @@ defmodule Ai do
         You don't need to explain anything, just give me the result"
       )
 
+    # TODO: wrap result
     res
   end
 
@@ -36,6 +37,7 @@ defmodule Ai do
         " <> posts
       )
 
+    # TODO: wrap result
     res
   end
 
@@ -67,6 +69,13 @@ defmodule Ai do
 " <> article
       )
 
+    # TODO: wrap result
     res
+  end
+
+  def embed(content, model) do
+    client = Ollama.init()
+
+    Ollama.embed(client, model: model, input: content)
   end
 end

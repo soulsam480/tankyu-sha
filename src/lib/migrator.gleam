@@ -1,7 +1,10 @@
 import argv
+import birl
 import clip
 import clip/help
+import clip/opt
 import ffi/sqlite
+import gleam/dict
 import gleam/dynamic/decode
 import gleam/erlang
 import gleam/int
@@ -10,6 +13,7 @@ import gleam/list
 import gleam/regexp
 import gleam/result
 import gleam/string
+import justin
 import lib/error
 import simplifile
 
@@ -20,6 +24,7 @@ pub type Migration {
 pub type MigrationOp {
   Up
   Down
+  Generate(name: String)
 }
 
 fn find_files() {
@@ -49,6 +54,10 @@ fn read_migrations(files: List(String)) {
       |> error.map_to_snag("Unable to compile RE"),
     )
 
+    use whitespace_re <- result.try(
+      regexp.from_string("\\s{2,}") |> error.map_to_snag("Unable to compile RE"),
+    )
+
     use migration_version <- result.try(
       string.split(file, "/")
       |> list.last()
@@ -60,7 +69,9 @@ fn read_migrations(files: List(String)) {
     let serialized =
       regexp.split(re, content)
       |> list.filter(fn(it) { !string.is_empty(it) })
-      |> list.map(fn(it) { string.replace(it, "\n", "") })
+      |> list.map(fn(it) {
+        string.replace(it, "\n", "") |> regexp.replace(whitespace_re, _, "")
+      })
 
     let assert [up, down, ..] = serialized
 
@@ -103,15 +114,17 @@ fn select_migrations(conn: sqlite.Connection) {
 }
 
 fn insert_migration(conn: sqlite.Connection, migration: Migration) {
-  sqlite.exec(conn, "insert into schema_migrations (version) values (?)", [
-    migration.version |> sqlite.string,
-  ])
+  let assert Ok(_) =
+    sqlite.exec(conn, "insert into schema_migrations (version) values (?)", [
+      migration.version |> sqlite.string,
+    ])
 }
 
 fn delete_migration(conn: sqlite.Connection, migration: Migration) {
-  sqlite.exec(conn, "delete from schema_migrations where version = ?", [
-    migration.version |> sqlite.string,
-  ])
+  let assert Ok(_) =
+    sqlite.exec(conn, "delete from schema_migrations where version = ?", [
+      migration.version |> sqlite.string,
+    ])
 }
 
 fn run_stmts(stmts: String, with conn: sqlite.Connection) {
@@ -124,8 +137,10 @@ fn run_stmts(stmts: String, with conn: sqlite.Connection) {
   // Execute each statement
   use _ <- result.try(
     list.try_map(statements, fn(stmt) {
+      io.println("Executing: " <> stmt)
+
       sqlite.exec(conn, stmt, [])
-      |> error.map_to_snag("Unable to execute statement: " <> stmt)
+      |> error.map_to_snag("Unable to execute statement")
     }),
   )
 
@@ -133,7 +148,7 @@ fn run_stmts(stmts: String, with conn: sqlite.Connection) {
 }
 
 fn up_migrate(migration: Migration, with conn: sqlite.Connection) {
-  let _ = run_stmts(migration.up, conn)
+  let assert Ok(_) = run_stmts(migration.up, conn)
 
   let res =
     insert_migration(conn, migration)
@@ -153,7 +168,7 @@ fn up_migrate(migration: Migration, with conn: sqlite.Connection) {
 }
 
 fn down_migrate(migration: Migration, with conn: sqlite.Connection) {
-  let _ = run_stmts(migration.down, conn)
+  let assert Ok(_) = run_stmts(migration.down, conn)
 
   let res =
     delete_migration(conn, migration)
@@ -172,8 +187,77 @@ fn down_migrate(migration: Migration, with conn: sqlite.Connection) {
   res
 }
 
+fn pad_int(val: Int) {
+  val
+  |> int.to_string
+  |> string.pad_start(2, "0")
+}
+
+fn generate(name: String) {
+  let stamp = birl.utc_now()
+  let day = birl.get_day(stamp)
+  let time = birl.get_time_of_day(stamp)
+
+  let timestamp =
+    [
+      day.year |> int.to_string,
+      day.month |> pad_int,
+      day.date |> pad_int,
+      time.hour |> pad_int,
+      time.minute |> pad_int,
+      time.second |> pad_int,
+    ]
+    |> list.fold("", fn(acc, curr) { acc <> curr })
+
+  let migration_file_name = timestamp <> "_" <> name |> justin.snake_case
+
+  use priv_dir <- result.try(
+    erlang.priv_directory("tankyu_sha")
+    |> error.map_to_snag("Unable to get priv dir"),
+  )
+
+  let file_path = priv_dir <> "/migrations/" <> migration_file_name <> ".sql"
+
+  use file_exists <- result.try(
+    simplifile.is_file(file_path) |> error.map_to_snag("unable to get file"),
+  )
+
+  case file_exists {
+    True -> {
+      io.println("File already exists")
+
+      Ok(Nil)
+    }
+
+    False -> {
+      io.println("Creating migration file: " <> migration_file_name)
+
+      let _ =
+        simplifile.write(
+          file_path,
+          "-- migrate:up
+-- migrate:down",
+        )
+
+      Ok(Nil)
+    }
+  }
+}
+
 pub fn run(op: MigrationOp) {
-  use conn <- sqlite.with_connection("development.sqlite3")
+  use conn <- sqlite.with_connection(sqlite.db_path())
+
+  use res <- result.try(
+    sqlite.exec(conn, "select sqlite_version(), vec_version()", [])
+    |> error.map_to_snag("Unable to query"),
+  )
+
+  use rows <- result.try(
+    dict.get(res, sqlite.Rows) |> error.map_to_snag("Unable to read rows"),
+  )
+
+  io.println("Running on " <> { string.inspect(rows) })
+
   use _ <- result.try(create_schema_table(conn))
 
   // TODO: add limits
@@ -184,6 +268,12 @@ pub fn run(op: MigrationOp) {
   use migrations <- result.try(read_migrations(files))
 
   case op {
+    Generate(name) -> {
+      let _ = generate(name)
+
+      Nil
+    }
+
     Up -> {
       let to_add = case list.length(applied_migrations) {
         0 -> {
@@ -263,8 +353,22 @@ fn down_command() -> clip.Command(MigrationOp) {
   |> clip.help(help.simple("down", "Rollback all migrations"))
 }
 
+fn generate_command() -> clip.Command(MigrationOp) {
+  clip.command({
+    use name <- clip.parameter
+
+    Generate(name:)
+  })
+  |> clip.opt(opt.new("name") |> opt.help("Migration name"))
+  |> clip.help(help.simple("new", "Generate a new migration"))
+}
+
 fn command() -> clip.Command(MigrationOp) {
-  clip.subcommands([#("up", up_command()), #("down", down_command())])
+  clip.subcommands([
+    #("up", up_command()),
+    #("down", down_command()),
+    #("new", generate_command()),
+  ])
 }
 
 pub fn main() {
