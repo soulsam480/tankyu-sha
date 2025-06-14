@@ -17,21 +17,21 @@ pub fn exec_insert_and_query_test() {
 
   sqlite.exec(
     conn,
-    "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER, guest BOOLEAN)",
+    "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER, guest BOOLEAN)",
     [],
   )
   |> should.be_ok()
 
   sqlite.exec(conn, "INSERT INTO users (name, age, guest) VALUES (?, ?, ?)", [
-    sqlite.string("John"),
-    sqlite.int(25),
+    sqlite.bind("John"),
+    sqlite.bind(25),
     sqlite.bool(False),
   ])
   |> should.be_ok()
 
   sqlite.exec(conn, "INSERT INTO users (name, age, guest) VALUES (?, ?, ?)", [
-    sqlite.string("Jane"),
-    sqlite.int(30),
+    sqlite.bind("Jane"),
+    sqlite.bind(30),
     sqlite.bool(True),
   ])
   |> should.be_ok()
@@ -48,10 +48,10 @@ type User {
 }
 
 fn user_decoder() -> decode.Decoder(User) {
-  use id <- decode.field(0, decode.int)
-  use name <- decode.field(1, decode.string)
-  use age <- decode.field(2, decode.int)
-  use guest <- decode.field(3, sqlite.decode_bool())
+  use id <- decode.field("id", decode.int)
+  use name <- decode.optional_field("name", "", decode.string)
+  use age <- decode.optional_field("age", -1, decode.int)
+  use guest <- decode.optional_field("guest", False, sqlite.decode_bool())
 
   decode.success(User(id:, name:, age:, guest:))
 }

@@ -4,7 +4,6 @@ import clip
 import clip/help
 import clip/opt
 import ffi/sqlite
-import gleam/dict
 import gleam/dynamic/decode
 import gleam/erlang
 import gleam/int
@@ -116,14 +115,14 @@ fn select_migrations(conn: sqlite.Connection) {
 fn insert_migration(conn: sqlite.Connection, migration: Migration) {
   let assert Ok(_) =
     sqlite.exec(conn, "insert into schema_migrations (version) values (?)", [
-      migration.version |> sqlite.string,
+      migration.version |> sqlite.bind,
     ])
 }
 
 fn delete_migration(conn: sqlite.Connection, migration: Migration) {
   let assert Ok(_) =
     sqlite.exec(conn, "delete from schema_migrations where version = ?", [
-      migration.version |> sqlite.string,
+      migration.version |> sqlite.bind,
     ])
 }
 
@@ -252,11 +251,7 @@ pub fn run(op: MigrationOp) {
     |> error.map_to_snag("Unable to query"),
   )
 
-  use rows <- result.try(
-    dict.get(res, sqlite.Rows) |> error.map_to_snag("Unable to read rows"),
-  )
-
-  io.println("Running on " <> { string.inspect(rows) })
+  io.println("Running on " <> { string.inspect(res.rows) })
 
   use _ <- result.try(create_schema_table(conn))
 

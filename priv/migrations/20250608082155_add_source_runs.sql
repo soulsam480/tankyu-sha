@@ -1,11 +1,10 @@
 -- migrate:up
 CREATE TABLE source_runs (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     source_id INTEGER NOT NULL,
-    digest_id INTEGER,
     task_run_id INTEGER,
     FOREIGN KEY (source_id) REFERENCES sources (id),
     FOREIGN KEY (task_run_id) REFERENCES task_runs (id)

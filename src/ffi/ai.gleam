@@ -1,6 +1,7 @@
 import gleam/dict
 import gleam/dynamic
 import gleam/option.{type Option}
+import gleam/result
 import lib/error
 
 // src/ffi/dom.ex
@@ -43,4 +44,9 @@ fn do_embed(
 
 pub fn embed(input: List(String), model: Option(String)) {
   do_embed(input, option.unwrap(model, "nomic-embed-text:latest"))
+}
+
+pub fn pluck_embedding(res: dict.Dict(String, List(List(Float)))) {
+  dict.get(res, "embeddings")
+  |> error.map_to_snag("invalid dict")
 }

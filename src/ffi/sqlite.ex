@@ -1,7 +1,8 @@
-@moduledoc """
-taken from https://github.com/joelpaulkoch/sqlite_vec/blob/main/lib/sqlite_vec.ex
-"""
 defmodule Sqlite do
+  @moduledoc """
+  taken from https://github.com/joelpaulkoch/sqlite_vec/blob/main/lib/sqlite_vec.ex
+  """
+
   def open(path) do
     download_ext()
 
@@ -49,5 +50,10 @@ defmodule Sqlite do
     end
 
     SqliteDownloader.download(Path.dirname(ext_path()))
+  end
+
+  # merge rows with columns
+  def zip(columns, rows) do
+    Enum.zip(columns, rows) |> Map.new()
   end
 end

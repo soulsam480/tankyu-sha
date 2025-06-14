@@ -1,8 +1,7 @@
 -- migrate:up
 CREATE TABLE task_runs (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_id INTEGER NOT NULL,
-    digest_id INTEGER,
     status TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TEXT NOT NULL,

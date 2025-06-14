@@ -1,6 +1,6 @@
 import gleam/option.{type Option}
 
-@external(erlang, "Elixir.Chain", "split")
+@external(erlang, "Elixir.LLMChain", "split")
 fn do_split_text(
   content: String,
   chunk_size: Int,

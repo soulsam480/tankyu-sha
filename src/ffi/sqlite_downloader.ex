@@ -1,7 +1,7 @@
-@moduledoc """
-taken from https://github.com/joelpaulkoch/sqlite_vec/blob/main/lib/sqlite_vec/downloader.ex
-"""
 defmodule SqliteDownloader do
+  @moduledoc """
+  taken from https://github.com/joelpaulkoch/sqlite_vec/blob/main/lib/sqlite_vec/downloader.ex
+  """
   use OctoFetch,
     latest_version: "0.1.6",
     github_repo: "asg017/sqlite-vec",

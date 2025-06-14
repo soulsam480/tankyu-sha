@@ -1,6 +1,6 @@
 -- migrate:up
 CREATE TABLE sources (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT NOT NULL,
     kind TEXT NOT NULL,
     meta TEXT,

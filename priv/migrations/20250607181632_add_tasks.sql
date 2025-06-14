@@ -1,6 +1,6 @@
 -- migrate:up
 CREATE TABLE tasks (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     topic TEXT NOT NULL,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     delivery_at TEXT NOT NULL,

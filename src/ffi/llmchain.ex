@@ -1,4 +1,4 @@
-defmodule Chain do
+defmodule LLMChain do
   alias LangChain.TextSplitter.RecursiveCharacterTextSplitter
 
   def split(content, chunk_size, chunk_overlap) do
