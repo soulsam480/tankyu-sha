@@ -1,7 +1,7 @@
-import content/source
 import gleam/dict
 import gleam/result
 import lib/error
+import models/source
 import services/internet_search
 
 pub fn run(source: source.Source) {
@@ -23,10 +23,9 @@ pub fn run(source: source.Source) {
 
 pub fn main() {
   let _ =
-    run(source.Source(
-      source.Search,
-      "",
-      dict.from_list([#("search_str", "india ai news")]),
-    ))
+    source.new()
+    |> source.set_kind(source.Search)
+    |> source.set_meta(dict.from_list([#("search_str", "india ai news")]))
+    |> run
     |> echo
 }

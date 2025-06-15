@@ -90,6 +90,7 @@ pub fn ddg_simple(
 /// Range -> d,m,h,y
 /// Pages -> any integer, larger the count slower the results fetching
 /// Section -> news, web
+///
 pub type DdgParam {
   Pages(count: String)
   Range(from: String)

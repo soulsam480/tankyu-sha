@@ -20,13 +20,15 @@ pub opaque type Task {
 fn task_decoder() -> decode.Decoder(Task) {
   use id <- decode.field("id", decode.int)
   use topic <- decode.optional_field("topic", "", decode.string)
-  use active <- decode.optional_field("active", True, decode.bool)
+  use active <- decode.optional_field("active", True, sqlite.decode_bool())
   use delivery_at <- decode.optional_field("delivery_at", "", decode.string)
+
   use delivery_route <- decode.optional_field(
     "delivery_route",
     "",
     decode.string,
   )
+
   use created_at <- decode.optional_field("created_at", "", decode.string)
   use updated_at <- decode.optional_field("updated_at", "", decode.string)
 

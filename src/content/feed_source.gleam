@@ -1,4 +1,3 @@
-import content/source
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/int
@@ -8,6 +7,7 @@ import gleam/result
 import gleam/string
 import gleam/string_tree
 import lib/error
+import models/source
 import services/browser
 import snag
 

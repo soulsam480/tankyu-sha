@@ -54,7 +54,8 @@ fn read_migrations(files: List(String)) {
     )
 
     use whitespace_re <- result.try(
-      regexp.from_string("\\s{2,}") |> error.map_to_snag("Unable to compile RE"),
+      regexp.from_string("(?<!,)\\s{2,}")
+      |> error.map_to_snag("Unable to compile RE"),
     )
 
     use migration_version <- result.try(
@@ -80,16 +81,12 @@ fn read_migrations(files: List(String)) {
 }
 
 fn create_schema_table(conn: sqlite.Connection) {
-  use _ <- result.try(
-    sqlite.exec(
-      conn,
-      "CREATE TABLE IF NOT EXISTS \"schema_migrations\" (version varchar(128) primary key);",
-      [],
-    )
-    |> error.map_to_snag("Unable to create schema migrations"),
+  sqlite.exec(
+    conn,
+    "CREATE TABLE IF NOT EXISTS \"schema_migrations\" (version varchar(128) primary key);",
+    [],
   )
-
-  Ok(conn)
+  |> error.map_to_snag("Unable to create schema migrations")
 }
 
 type MigrationRow {
@@ -97,7 +94,7 @@ type MigrationRow {
 }
 
 fn migration_row_decoder() -> decode.Decoder(MigrationRow) {
-  use version <- decode.field(0, decode.string)
+  use version <- decode.field("version", decode.string)
   decode.success(MigrationRow(version:))
 }
 
@@ -255,7 +252,6 @@ pub fn run(op: MigrationOp) {
 
   use _ <- result.try(create_schema_table(conn))
 
-  // TODO: add limits
   use applied_migrations <- result.try(select_migrations(conn))
 
   use files <- result.try(find_files())

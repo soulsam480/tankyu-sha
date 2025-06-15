@@ -1,4 +1,3 @@
-import content/source
 import ffi/sqlite
 import gleam/dynamic/decode
 import gleam/option
@@ -6,6 +5,7 @@ import gleam/result
 import gleam/string
 import gleam/string_tree
 import lib/error
+import models/source
 import services/browser
 import snag
 

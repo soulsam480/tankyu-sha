@@ -1,5 +1,4 @@
 import content/runner
-import content/source
 import ffi/ai
 import gleam/int
 import gleam/list
@@ -9,6 +8,7 @@ import gleam/result
 import gleam/string
 import gleam/string_tree
 import lib/error
+import models/source
 import services/internet_search
 import snag
 import survey
@@ -135,7 +135,10 @@ pub fn run_app() {
     }
   }
 
-  let assert Ok(source) = source.new(opt_val.link, source_type)
+  let source =
+    source.new()
+    |> source.set_kind(source_type)
+    |> source.set_url(option.unwrap(opt_val.link, ""))
 
   use content <- result.try(runner.run(source))
   use _ <- result.try(ai.analyse(ai.ContentAnalysis, content))

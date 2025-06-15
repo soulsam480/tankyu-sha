@@ -1,7 +1,6 @@
 import gleam/dict
 import gleam/dynamic
 import gleam/option.{type Option}
-import gleam/result
 import lib/error
 
 // src/ffi/dom.ex

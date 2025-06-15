@@ -5,7 +5,9 @@ CREATE TABLE sources (
     kind TEXT NOT NULL,
     meta TEXT,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    task_id INTEGER NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks (id)
 );
 
 CREATE INDEX index_sources_on_kind ON sources (kind);
