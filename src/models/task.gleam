@@ -5,7 +5,7 @@ import gleam/list
 import gleam/result
 import lib/error
 
-pub opaque type Task {
+pub type Task {
   Task(
     id: Int,
     topic: String,
@@ -72,22 +72,26 @@ pub fn set_delivery_route(task: Task, delivery_route: String) {
 }
 
 pub fn create(task: Task, connection: sqlite.Connection) {
-  let res =
+  use res <- result.try(
     sqlite.exec(
       connection,
       "INSERT INTO tasks (topic, active, delivery_at, delivery_route, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, ?)",
+       VALUES (?, ?, ?, ?, ?, ?)
+       RETURNING id;",
       [
         task.topic |> sqlite.bind,
-        task.active |> sqlite.bind,
+        task.active |> sqlite.bool,
         task.delivery_at |> sqlite.bind,
         task.delivery_route |> sqlite.bind,
         task.created_at |> sqlite.bind,
         task.updated_at |> sqlite.bind,
       ],
-    )
+    ),
+  )
 
-  result.is_ok(res)
+  use id <- result.try(sqlite.get_inserted_id(res))
+
+  Ok(Task(..task, id:))
 }
 
 pub fn find(id: Int, conn: sqlite.Connection) {
@@ -120,7 +124,7 @@ pub fn update(task: Task, conn: sqlite.Connection) {
        WHERE id = ?",
       [
         task.topic |> sqlite.bind,
-        task.active |> sqlite.bind,
+        task.active |> sqlite.bool,
         task.delivery_at |> sqlite.bind,
         task.delivery_route |> sqlite.bind,
         birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
@@ -135,7 +139,7 @@ pub fn active(conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
     "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
      FROM tasks 
-     WHERE active = true
+     WHERE active = 1
      ORDER BY delivery_at ASC;",
     conn,
     [],

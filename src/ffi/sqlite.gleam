@@ -130,3 +130,21 @@ pub fn db_path() {
   let env = envoy.get("APP_ENV") |> result.unwrap("development")
   env <> ".sqlite3"
 }
+
+pub fn get_inserted_id(res: ExecResult) {
+  echo res
+  use first_dynamic <- result.try(
+    list.first(res.rows) |> error.map_to_snag("Invalid row response"),
+  )
+
+  use rows <- result.try(
+    decode.run(first_dynamic, decode.list(decode.int))
+    |> error.map_to_snag("Invalid row response"),
+  )
+
+  use id <- result.try(
+    list.first(rows) |> error.map_to_snag("Unable to find id"),
+  )
+
+  Ok(id)
+}

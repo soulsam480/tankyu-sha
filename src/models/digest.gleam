@@ -88,12 +88,12 @@ pub fn set_task_run_id(digest: Digest, task_run_id: Int) {
 }
 
 pub fn create(digest: Digest, connection: sqlite.Connection) {
-  let res =
+  use res <- result.try(
     sqlite.exec(
       connection,
-      "INSERT INTO
-digests (content, content_embedding, created_at, updated_at, meta, source_run_id, task_run_id) 
-VALUES (?, vec_f32(?), ?, ?, ?, ?, ?)",
+      "INSERT INTO digests (content, content_embedding, created_at, updated_at, meta, source_run_id, task_run_id) 
+       VALUES (?, vec_f32(?), ?, ?, ?, ?, ?)
+       RETURNING id;",
       [
         digest.content |> sqlite.bind,
         digest.content_embedding |> sqlite.vec,
@@ -103,9 +103,12 @@ VALUES (?, vec_f32(?), ?, ?, ?, ?, ?)",
         digest.source_run_id |> sqlite.option,
         digest.task_run_id |> sqlite.option,
       ],
-    )
+    ),
+  )
 
-  result.is_ok(res)
+  use id <- result.try(sqlite.get_inserted_id(res))
+
+  Ok(Digest(..digest, id:))
 }
 
 pub fn find(id: Int, conn: sqlite.Connection) {

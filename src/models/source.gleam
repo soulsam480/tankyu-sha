@@ -114,11 +114,12 @@ pub fn set_task_id(source: Source, task_id: Int) {
 }
 
 pub fn create(source: Source, connection: sqlite.Connection) {
-  let res =
+  use res <- result.try(
     sqlite.exec(
       connection,
       "INSERT INTO sources (url, kind, meta, task_id, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, ?)",
+       VALUES (?, ?, ?, ?, ?, ?)
+       RETURNING id;",
       [
         source.url |> sqlite.bind,
         encode_kind(source.kind) |> sqlite.bind,
@@ -127,9 +128,12 @@ pub fn create(source: Source, connection: sqlite.Connection) {
         source.created_at |> sqlite.bind,
         source.updated_at |> sqlite.bind,
       ],
-    )
+    ),
+  )
 
-  result.is_ok(res)
+  use id <- result.try(sqlite.get_inserted_id(res))
+
+  Ok(Source(..source, id:))
 }
 
 pub fn find(id: Int, conn: sqlite.Connection) {
