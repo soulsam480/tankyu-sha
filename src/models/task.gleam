@@ -1,4 +1,5 @@
 import birl
+import birl/duration
 import ffi/sqlite
 import gleam/dynamic/decode
 import gleam/list
@@ -143,6 +144,26 @@ pub fn active(conn: sqlite.Connection) {
      ORDER BY delivery_at ASC;",
     conn,
     [],
+    task_decoder(),
+  ))
+
+  Ok(items)
+}
+
+pub fn in_next_fifteen(conn: sqlite.Connection) {
+  use items <- result.try(sqlite.query(
+    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
+     FROM tasks 
+     WHERE active = 1 AND date(delivery_at) BETWEEN date(?) AND date(?)
+     ORDER BY delivery_at ASC;",
+    conn,
+    [
+      birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
+      birl.utc_now()
+        |> birl.add(duration.hours(5))
+        |> birl.to_iso8601()
+        |> sqlite.bind,
+    ],
     task_decoder(),
   ))
 
