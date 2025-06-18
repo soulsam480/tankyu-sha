@@ -6,12 +6,19 @@ import gleam/option.{type Option}
 import gleam/result
 import lib/error
 
-pub opaque type TaskRun {
+pub type TaskStatus {
+  Queued
+  Running
+  Failure
+  Success
+}
+
+pub type TaskRun {
   TaskRun(
     id: Int,
     task_id: Int,
     digest_id: Option(Int),
-    status: String,
+    status: TaskStatus,
     content: String,
     created_at: String,
     updated_at: String,
@@ -40,6 +47,12 @@ fn task_run_decoder() -> decode.Decoder(TaskRun) {
     created_at:,
     updated_at:,
   ))
+}
+
+fn decode_status(status: String) {
+  case status {
+    "pending" -> Pending
+  }
 }
 
 pub fn new() {

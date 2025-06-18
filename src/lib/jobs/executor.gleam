@@ -10,6 +10,8 @@ pub fn new(conn: sqlite.Connection) {
 }
 
 fn handle_message(message: ExecutorMessage, conn: sqlite.Connection) {
+  echo "I'm running"
+
   case message {
     ExecuteSource(id) -> {
       echo id

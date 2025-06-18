@@ -150,7 +150,7 @@ pub fn active(conn: sqlite.Connection) {
   Ok(items)
 }
 
-pub fn in_next_fifteen(conn: sqlite.Connection) {
+pub fn in_next_5_hours(conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
     "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
      FROM tasks 

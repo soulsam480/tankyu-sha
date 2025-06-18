@@ -1,5 +1,6 @@
 import ffi/sqlite
 import gleam/erlang/process
+import gleam/function
 import gleam/list
 import gleam/otp/actor
 import gleam/result
@@ -14,7 +15,7 @@ type State {
   State(
     conn: sqlite.Connection,
     exec_sup: process.Subject(executor.ExecutorMessage),
-  parent_sup: process.Subject()
+    self: process.Subject(SchedulerMessage),
   )
 }
 
@@ -22,7 +23,21 @@ pub fn new(
   conn: sqlite.Connection,
   exec_sup: process.Subject(executor.ExecutorMessage),
 ) {
-  actor.start(State(conn:, exec_sup:), handle_message)
+  actor.start_spec(actor.Spec(
+    init: fn() {
+      let self = process.new_subject()
+
+      process.send(self, Schedule)
+
+      actor.Ready(
+        State(conn:, exec_sup:, self:),
+        process.new_selector()
+          |> process.selecting(self, function.identity),
+      )
+    },
+    init_timeout: 1000,
+    loop: handle_message,
+  ))
 }
 
 pub fn schedule(sub: process.Subject(SchedulerMessage)) {
@@ -32,11 +47,9 @@ pub fn schedule(sub: process.Subject(SchedulerMessage)) {
 fn handle_message(message: SchedulerMessage, state: State) {
   let _ = case message {
     Schedule -> {
-      use tasks <- result.try(task.in_next_fifteen(state.conn))
+      use tasks <- result.try(task.in_next_5_hours(state.conn))
 
       list.each(tasks, fn(task) {
-        echo task
-
         process.send(state.exec_sup, executor.ExecuteSource(task.id))
       })
 
@@ -44,8 +57,8 @@ fn handle_message(message: SchedulerMessage, state: State) {
     }
   }
 
-  // process.sleep(6000)
+  process.sleep(6000)
+  process.send(state.self, Schedule)
 
-  // TODO: we need to recurse
   actor.continue(state)
 }
