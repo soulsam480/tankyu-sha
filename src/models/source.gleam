@@ -29,7 +29,12 @@ pub type Source {
 fn source_decoder() -> decode.Decoder(Source) {
   use id <- decode.field("id", decode.int)
   use url <- decode.optional_field("url", "", decode.string)
-  use kind <- decode.optional_field("kind", "", decode.string)
+
+  use kind <- decode.optional_field(
+    "kind",
+    News,
+    decode.string |> decode.map(kind_decoder),
+  )
 
   use task_id <- decode.optional_field(
     "task_id",
@@ -42,12 +47,10 @@ fn source_decoder() -> decode.Decoder(Source) {
   use created_at <- decode.optional_field("created_at", "", decode.string)
   use updated_at <- decode.optional_field("updated_at", "", decode.string)
 
-  let assert Ok(parsed_kind) = decode_kind(kind)
-
   decode.success(Source(
     id:,
     url:,
-    kind: parsed_kind,
+    kind:,
     meta:,
     created_at:,
     task_id:,
@@ -55,16 +58,16 @@ fn source_decoder() -> decode.Decoder(Source) {
   ))
 }
 
-fn decode_kind(kind: String) {
+fn kind_decoder(kind: String) {
   case kind {
-    "Search" -> Ok(Search)
-    "Feed" -> Ok(Feed)
-    "News" -> Ok(News)
-    _ -> Error(Nil)
+    "Search" -> Search
+    "Feed" -> Feed
+    "News" -> News
+    _ -> News
   }
 }
 
-fn encode_kind(kind: SourceKind) {
+fn kind_encoder(kind: SourceKind) {
   case kind {
     Search -> "Search"
     Feed -> "Feed"
@@ -122,7 +125,7 @@ pub fn create(source: Source, connection: sqlite.Connection) {
        RETURNING id;",
       [
         source.url |> sqlite.bind,
-        encode_kind(source.kind) |> sqlite.bind,
+        kind_encoder(source.kind) |> sqlite.bind,
         source.meta |> encode_meta |> sqlite.bind,
         source.task_id |> sqlite.option,
         source.created_at |> sqlite.bind,
@@ -166,7 +169,7 @@ pub fn update(source: Source, conn: sqlite.Connection) {
        WHERE id = ?",
       [
         source.url |> sqlite.bind,
-        encode_kind(source.kind) |> sqlite.bind,
+        kind_encoder(source.kind) |> sqlite.bind,
         source.meta |> encode_meta |> sqlite.bind,
         source.task_id |> sqlite.option,
         birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
@@ -183,7 +186,7 @@ pub fn of_kind(kind: SourceKind, conn: sqlite.Connection) {
      FROM sources 
      WHERE kind = ?;",
     conn,
-    [kind |> encode_kind |> sqlite.bind],
+    [kind |> kind_encoder |> sqlite.bind],
     source_decoder(),
   ))
 

@@ -3,6 +3,7 @@ bun = "latest"
 elixir = "latest"
 erlang = "27.0"
 gleam = "latest"
+rebar = "3"
 
 [tasks."migrate:new"]
 description = "Create a new migration file"

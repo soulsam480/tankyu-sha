@@ -28,12 +28,19 @@ pub type TaskRun {
 fn task_run_decoder() -> decode.Decoder(TaskRun) {
   use id <- decode.field("id", decode.int)
   use task_id <- decode.optional_field("task_id", 0, decode.int)
+
   use digest_id <- decode.optional_field(
     "digest_id",
     option.None,
     decode.optional(decode.int),
   )
-  use status <- decode.optional_field("status", "pending", decode.string)
+
+  use status <- decode.optional_field(
+    "status",
+    Queued,
+    decode.string |> decode.map(task_status_decoder),
+  )
+
   use content <- decode.optional_field("content", "", decode.string)
   use created_at <- decode.optional_field("created_at", "", decode.string)
   use updated_at <- decode.optional_field("updated_at", "", decode.string)
@@ -49,9 +56,22 @@ fn task_run_decoder() -> decode.Decoder(TaskRun) {
   ))
 }
 
-fn decode_status(status: String) {
+fn task_status_decoder(status: String) {
   case status {
-    "pending" -> Pending
+    "pending" -> Queued
+    "running" -> Running
+    "failure" -> Failure
+    "success" -> Success
+    _ -> Queued
+  }
+}
+
+fn task_status_encoder(task_status: TaskStatus) -> String {
+  case task_status {
+    Queued -> "queued"
+    Running -> "running"
+    Failure -> "failure"
+    Success -> "success"
   }
 }
 
@@ -60,14 +80,14 @@ pub fn new() {
     id: 0,
     task_id: 0,
     digest_id: option.None,
-    status: "pending",
+    status: Queued,
     content: "",
     created_at: birl.utc_now() |> birl.to_iso8601(),
     updated_at: birl.utc_now() |> birl.to_iso8601(),
   )
 }
 
-pub fn set_status(task_run: TaskRun, status: String) {
+pub fn set_status(task_run: TaskRun, status: TaskStatus) {
   TaskRun(..task_run, status:)
 }
 
@@ -77,6 +97,10 @@ pub fn set_content(task_run: TaskRun, content: String) {
 
 pub fn set_digest_id(task_run: TaskRun, digest_id: Int) {
   TaskRun(..task_run, digest_id: option.Some(digest_id))
+}
+
+pub fn set_task_id(task_run: TaskRun, task_id: Int) {
+  TaskRun(..task_run, task_id:)
 }
 
 pub fn create(task_run: TaskRun, connection: sqlite.Connection) {
@@ -89,7 +113,7 @@ pub fn create(task_run: TaskRun, connection: sqlite.Connection) {
       [
         task_run.task_id |> sqlite.bind,
         task_run.digest_id |> sqlite.option,
-        task_run.status |> sqlite.bind,
+        task_run.status |> task_status_encoder |> sqlite.bind,
         task_run.content |> sqlite.bind,
         task_run.created_at |> sqlite.bind,
         task_run.updated_at |> sqlite.bind,
@@ -130,7 +154,7 @@ pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
            updated_at = ? 
        WHERE id = ?",
       [
-        task_run.status |> sqlite.bind,
+        task_run.status |> task_status_encoder |> sqlite.bind,
         task_run.content |> sqlite.bind,
         task_run.digest_id |> sqlite.option,
         birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,

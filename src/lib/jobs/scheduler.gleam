@@ -5,7 +5,9 @@ import gleam/list
 import gleam/otp/actor
 import gleam/result
 import lib/jobs/executor
+import lib/utils
 import models/task
+import models/task_run
 
 pub type SchedulerMessage {
   Schedule
@@ -50,7 +52,26 @@ fn handle_message(message: SchedulerMessage, state: State) {
       use tasks <- result.try(task.in_next_5_hours(state.conn))
 
       list.each(tasks, fn(task) {
-        process.send(state.exec_sup, executor.ExecuteSource(task.id))
+        use running_tasks <- result.try(task_run.of_task(task.id, state.conn))
+
+        case utils.list_empty(running_tasks) {
+          True -> {
+            let assert Ok(new_task_run) =
+              task_run.new()
+              |> task_run.set_task_id(task.id)
+              |> task_run.create(state.conn)
+
+            process.send(
+              state.exec_sup,
+              executor.ExecuteSource(new_task_run.id),
+            )
+          }
+          _ -> {
+            Nil
+          }
+        }
+
+        Ok(Nil)
       })
 
       Ok(Nil)
