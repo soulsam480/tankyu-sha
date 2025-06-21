@@ -2,7 +2,9 @@ import birl
 import birl/duration
 import ffi/sqlite
 import gleam/erlang/process
+import gleam/list
 import gleam/otp/supervisor
+import gleam/result
 import lib/jobs/executor
 import lib/jobs/scheduler
 import models/task
@@ -33,15 +35,31 @@ pub fn start() {
 }
 
 pub fn main() {
-  // use conn <- sqlite.with_connection(sqlite.db_path())
-  // let ts =
-  //   task.new()
-  //   |> task.set_delivery_at(
-  //     birl.utc_now() |> birl.add(duration.hours(1)) |> birl.to_iso8601(),
-  //   )
-  //   |> task.create(conn)
-  //
-  // echo ts
+  use conn <- sqlite.with_connection(sqlite.db_path())
+
+  let assert Ok(all_tasks) = task.all(conn)
+
+  list.each(all_tasks, task.destroy(_, conn))
+
+  let delivery_times = [
+    birl.utc_now() |> birl.add(duration.hours(1)) |> birl.to_iso8601(),
+    birl.utc_now() |> birl.add(duration.hours(2)) |> birl.to_iso8601(),
+    birl.utc_now() |> birl.add(duration.hours(5)) |> birl.to_iso8601(),
+    birl.utc_now()
+      |> birl.add(duration.hours(5))
+      |> birl.add(duration.minutes(10))
+      |> birl.to_iso8601(),
+    birl.utc_now() |> birl.add(duration.hours(8)) |> birl.to_iso8601(),
+    birl.utc_now() |> birl.add(duration.hours(10)) |> birl.to_iso8601(),
+  ]
+
+  list.each(delivery_times, fn(delivery_time) {
+    task.new()
+    |> task.set_delivery_at(delivery_time)
+    |> task.create(conn)
+  })
 
   start()
+
+  Ok(Nil)
 }

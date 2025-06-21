@@ -121,7 +121,6 @@ pub fn update(task: Task, conn: sqlite.Connection) {
            active = ?, 
            delivery_at = ?, 
            delivery_route = ?, 
-           updated_at = ? 
        WHERE id = ?",
       [
         task.topic |> sqlite.bind,
@@ -154,7 +153,9 @@ pub fn in_next_5_hours(conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
     "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
      FROM tasks 
-     WHERE active = 1 AND date(delivery_at) BETWEEN date(?) AND date(?)
+     WHERE active = 1 
+       AND date(delivery_at) BETWEEN date(?) AND date(?) 
+       AND NOT EXISTS (SELECT 1 FROM task_runs WHERE task_runs.task_id = tasks.id)
      ORDER BY delivery_at ASC;",
     conn,
     [
@@ -164,6 +165,41 @@ pub fn in_next_5_hours(conn: sqlite.Connection) {
         |> birl.to_iso8601()
         |> sqlite.bind,
     ],
+    task_decoder(),
+  ))
+
+  Ok(items)
+}
+
+pub fn destroy(task: Task, connection: sqlite.Connection) {
+  sqlite.exec(connection, "DELETE FROM tasks WHERE id = ?;", [
+    task.id |> sqlite.bind,
+  ])
+}
+
+pub fn all_with_pagination(connection: sqlite.Connection, page: Int) {
+  let limit = 10
+
+  let offset = { page - 1 } * limit
+
+  use items <- result.try(sqlite.query(
+    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
+    FROM tasks 
+    LIMIT ? OFFSET ?;",
+    connection,
+    [limit |> sqlite.bind, offset |> sqlite.bind],
+    task_decoder(),
+  ))
+
+  Ok(items)
+}
+
+pub fn all(connection: sqlite.Connection) {
+  use items <- result.try(sqlite.query(
+    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at
+     FROM tasks;",
+    connection,
+    [],
     task_decoder(),
   ))
 

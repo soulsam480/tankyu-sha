@@ -47,14 +47,20 @@ pub fn schedule(sub: process.Subject(SchedulerMessage)) {
 }
 
 fn handle_message(message: SchedulerMessage, state: State) {
+  echo "Scheduler running"
+  echo message
+
   let _ = case message {
     Schedule -> {
       use tasks <- result.try(task.in_next_5_hours(state.conn))
 
       list.each(tasks, fn(task) {
-        use running_tasks <- result.try(task_run.of_task(task.id, state.conn))
+        echo "looking at task"
+        echo task
 
-        case utils.list_empty(running_tasks) {
+        let assert Ok(running_tasks) = task_run.of_task(task.id, state.conn)
+
+        case utils.list_is_empty(running_tasks) {
           True -> {
             let assert Ok(new_task_run) =
               task_run.new()

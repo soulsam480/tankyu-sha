@@ -2,7 +2,6 @@ import birl
 import ffi/sqlite
 import gleam/dynamic/decode
 import gleam/list
-import gleam/option.{type Option}
 import gleam/result
 import lib/error
 
@@ -17,7 +16,6 @@ pub type TaskRun {
   TaskRun(
     id: Int,
     task_id: Int,
-    digest_id: Option(Int),
     status: TaskStatus,
     content: String,
     created_at: String,
@@ -28,12 +26,6 @@ pub type TaskRun {
 fn task_run_decoder() -> decode.Decoder(TaskRun) {
   use id <- decode.field("id", decode.int)
   use task_id <- decode.optional_field("task_id", 0, decode.int)
-
-  use digest_id <- decode.optional_field(
-    "digest_id",
-    option.None,
-    decode.optional(decode.int),
-  )
 
   use status <- decode.optional_field(
     "status",
@@ -48,7 +40,6 @@ fn task_run_decoder() -> decode.Decoder(TaskRun) {
   decode.success(TaskRun(
     id:,
     task_id:,
-    digest_id:,
     status:,
     content:,
     created_at:,
@@ -79,7 +70,6 @@ pub fn new() {
   TaskRun(
     id: 0,
     task_id: 0,
-    digest_id: option.None,
     status: Queued,
     content: "",
     created_at: birl.utc_now() |> birl.to_iso8601(),
@@ -95,10 +85,6 @@ pub fn set_content(task_run: TaskRun, content: String) {
   TaskRun(..task_run, content:)
 }
 
-pub fn set_digest_id(task_run: TaskRun, digest_id: Int) {
-  TaskRun(..task_run, digest_id: option.Some(digest_id))
-}
-
 pub fn set_task_id(task_run: TaskRun, task_id: Int) {
   TaskRun(..task_run, task_id:)
 }
@@ -107,12 +93,11 @@ pub fn create(task_run: TaskRun, connection: sqlite.Connection) {
   use res <- result.try(
     sqlite.exec(
       connection,
-      "INSERT INTO task_runs (task_id, digest_id, status, content, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, ?)
+      "INSERT INTO task_runs (task_id, status, content, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?)
        RETURNING id;",
       [
         task_run.task_id |> sqlite.bind,
-        task_run.digest_id |> sqlite.option,
         task_run.status |> task_status_encoder |> sqlite.bind,
         task_run.content |> sqlite.bind,
         task_run.created_at |> sqlite.bind,
@@ -128,7 +113,7 @@ pub fn create(task_run: TaskRun, connection: sqlite.Connection) {
 
 pub fn find(id: Int, conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
-    "SELECT id, task_id, digest_id, status, content, created_at, updated_at 
+    "SELECT id, task_id, status, content, created_at, updated_at 
      FROM task_runs 
      WHERE id = ?;",
     conn,
@@ -149,14 +134,14 @@ pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
       conn,
       "UPDATE task_runs 
        SET status = ?, 
-           content = ?, 
-           digest_id = ?, 
+           content = ?,
+	   task_id = ?,
            updated_at = ? 
        WHERE id = ?",
       [
         task_run.status |> task_status_encoder |> sqlite.bind,
         task_run.content |> sqlite.bind,
-        task_run.digest_id |> sqlite.option,
+        task_run.task_id |> sqlite.bind,
         birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
         task_run.id |> sqlite.bind,
       ],
@@ -167,7 +152,7 @@ pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
 
 pub fn of_task(task_id: Int, conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
-    "SELECT id, task_id, digest_id, status, content, created_at, updated_at 
+    "SELECT id, task_id, status, content, created_at, updated_at 
      FROM task_runs 
      WHERE task_id = ?
      ORDER BY created_at DESC;",
