@@ -10,10 +10,8 @@ import gleam/otp/supervision
 import lib/logger
 import models/task
 
-pub type SupMessage {
-  Start
-}
-
+/// main entry of all background processes
+/// todo more comments
 pub fn start() {
   let sup_logger = logger.new("Supervisor")
 
@@ -52,17 +50,19 @@ pub fn main() {
 
   list.each(all_tasks, task.destroy(_, conn))
 
-  let delivery_times = [
-    birl.utc_now() |> birl.add(duration.hours(1)) |> birl.to_iso8601(),
-    birl.utc_now() |> birl.add(duration.hours(2)) |> birl.to_iso8601(),
-    birl.utc_now() |> birl.add(duration.hours(5)) |> birl.to_iso8601(),
-    birl.utc_now()
-      |> birl.add(duration.hours(5))
-      |> birl.add(duration.minutes(10))
-      |> birl.to_iso8601(),
-    birl.utc_now() |> birl.add(duration.hours(8)) |> birl.to_iso8601(),
-    birl.utc_now() |> birl.add(duration.hours(10)) |> birl.to_iso8601(),
-  ]
+  let delivery_times =
+    [
+      birl.utc_now() |> birl.add(duration.hours(1)) |> birl.to_iso8601(),
+      birl.utc_now() |> birl.add(duration.hours(2)) |> birl.to_iso8601(),
+      birl.utc_now() |> birl.add(duration.hours(5)) |> birl.to_iso8601(),
+      birl.utc_now()
+        |> birl.add(duration.hours(5))
+        |> birl.add(duration.minutes(10))
+        |> birl.to_iso8601(),
+      birl.utc_now() |> birl.add(duration.hours(8)) |> birl.to_iso8601(),
+      birl.utc_now() |> birl.add(duration.hours(10)) |> birl.to_iso8601(),
+    ]
+    |> echo
 
   list.each(delivery_times, fn(delivery_time) {
     task.new()

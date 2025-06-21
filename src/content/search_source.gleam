@@ -21,7 +21,7 @@ pub fn run(source: source.Source) {
 
   echo results
 
-  Ok(Nil)
+  Ok("")
 }
 
 pub fn main() {

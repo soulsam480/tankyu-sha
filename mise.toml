@@ -16,3 +16,11 @@ run = "gleam run -m lib/migrator -- up"
 [tasks."migrate:down"]
 description = "Rollback all migrations"
 run = "gleam run -m lib/migrator -- down"
+
+[tasks."db:drop"]
+description = "Drop the database"
+run = "rm -rf development.sqlite3"
+
+[tasks."db:create"]
+description = "Create the database"
+run = "touch development.sqlite3"

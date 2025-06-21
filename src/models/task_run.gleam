@@ -5,7 +5,7 @@ import gleam/list
 import gleam/result
 import lib/error
 
-pub type TaskStatus {
+pub type TaskRunStatus {
   Queued
   Running
   Failure
@@ -16,7 +16,7 @@ pub type TaskRun {
   TaskRun(
     id: Int,
     task_id: Int,
-    status: TaskStatus,
+    status: TaskRunStatus,
     content: String,
     created_at: String,
     updated_at: String,
@@ -57,7 +57,7 @@ fn task_status_decoder(status: String) {
   }
 }
 
-fn task_status_encoder(task_status: TaskStatus) -> String {
+fn task_status_encoder(task_status: TaskRunStatus) -> String {
   case task_status {
     Queued -> "queued"
     Running -> "running"
@@ -77,7 +77,7 @@ pub fn new() {
   )
 }
 
-pub fn set_status(task_run: TaskRun, status: TaskStatus) {
+pub fn set_status(task_run: TaskRun, status: TaskRunStatus) {
   TaskRun(..task_run, status:)
 }
 
@@ -147,7 +147,7 @@ pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
       ],
     )
 
-  result.is_ok(res)
+  Ok(result.is_ok(res))
 }
 
 pub fn of_task(task_id: Int, conn: sqlite.Connection) {

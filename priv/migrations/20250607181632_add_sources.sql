@@ -6,7 +6,7 @@ CREATE TABLE sources (
     meta TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    task_id INTEGER NOT NULL,
+    task_id INTEGER,
     FOREIGN KEY (task_id) REFERENCES tasks (id)
 );
 

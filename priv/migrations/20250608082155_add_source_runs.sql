@@ -2,6 +2,8 @@
 CREATE TABLE source_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     status TEXT NOT NULL,
+    content TEXT,
+    summary TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     source_id INTEGER NOT NULL,

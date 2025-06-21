@@ -3,6 +3,7 @@ import gleam/dict
 import gleam/io
 import gleam/string
 import gleam/string_tree
+import youid/uuid
 
 pub type LogLevel {
   Info
@@ -19,11 +20,16 @@ fn log_level_to_json(log_level: LogLevel) -> String {
 }
 
 pub type Logger {
-  Logger(group: String, level: LogLevel, scope: dict.Dict(String, String))
+  Logger(
+    group: String,
+    cid: String,
+    level: LogLevel,
+    scope: dict.Dict(String, String),
+  )
 }
 
 pub fn new(group: String) {
-  Logger(group: group, level: Info, scope: dict.new())
+  Logger(group: group, cid: uuid.v4_string(), level: Info, scope: dict.new())
 }
 
 pub fn with_scope(logger: Logger, scope: dict.Dict(String, String)) {
@@ -45,11 +51,12 @@ pub fn notice(logger: Logger, message: String) {
 fn write(logger: Logger, message: String) {
   let out =
     string_tree.new()
-    |> string_tree.append(birl.utc_now() |> birl.to_naive_time_string() <> "  ")
+    |> string_tree.append(birl.utc_now() |> birl.to_naive_time_string() <> " ")
+    |> string_tree.append(logger.cid <> " ")
     |> string_tree.append(
-      log_level_to_json(logger.level) |> string.uppercase <> "  ",
+      log_level_to_json(logger.level) |> string.uppercase <> " ",
     )
-    |> string_tree.append(string.uppercase(logger.group) <> "  ")
+    |> string_tree.append(string.uppercase(logger.group) <> " ")
 
   dict.fold(logger.scope, out, fn(acc, key, value) {
     string_tree.append(acc, key <> "=" <> value <> " ")

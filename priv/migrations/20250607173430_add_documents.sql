@@ -1,5 +1,5 @@
 -- migrate:up
-CREATE VIRTUAL TABLE digests using vec0(
+CREATE VIRTUAL TABLE documents using vec0(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     task_run_id INTEGER PARTITION KEY,
     source_run_id INTEGER PARTITION KEY,
@@ -11,4 +11,4 @@ CREATE VIRTUAL TABLE digests using vec0(
 );
 
 -- migrate:down
-DROP TABLE digests;
+DROP TABLE documents;

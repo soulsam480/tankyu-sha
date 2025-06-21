@@ -192,3 +192,16 @@ pub fn of_kind(kind: SourceKind, conn: sqlite.Connection) {
 
   Ok(items)
 }
+
+pub fn of_task(task_id: Int, conn: sqlite.Connection) {
+  use items <- result.try(sqlite.query(
+    "SELECT id, url, kind, meta, task_id, created_at, updated_at 
+     FROM sources 
+     WHERE task_id = ?;",
+    conn,
+    [task_id |> sqlite.bind],
+    source_decoder(),
+  ))
+
+  Ok(items)
+}
