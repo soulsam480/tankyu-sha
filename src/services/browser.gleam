@@ -1,8 +1,8 @@
 import gleam/dynamic
 import gleam/dynamic/decode
+import gleam/erlang/process
 import gleam/json
 import gleam/list
-import gleam/otp/task
 import gleam/result
 import gleam/string
 import lib/error
@@ -18,9 +18,14 @@ pub fn load_raw(
   url url: String,
   with opts: List(String),
 ) -> Result(String, snag.Snag) {
-  let browser_task = task.async(do_load(url, opts))
+  let task_sub = process.new_subject()
 
-  task.await_forever(browser_task)
+  let _ =
+    process.spawn_unlinked(fn() { process.send(task_sub, do_load(url, opts)) })
+
+  process.new_selector()
+  |> process.select(task_sub)
+  |> process.selector_receive_forever()
   |> result.map_error(fn(e) { TaskError(e |> string.inspect) })
   |> error.map_to_snag("Browser load error")
 }
@@ -58,10 +63,8 @@ fn do_load(url: String, opts: List(String)) {
     }
   }
 
-  fn() {
-    shellout.command("node", arguments, ".", command_opt)
-    |> result.map_error(fn(e) { ShellError(e |> string.inspect) })
-  }
+  shellout.command("node", arguments, ".", command_opt)
+  |> result.map_error(fn(e) { ShellError(e |> string.inspect) })
 }
 
 pub type BrowserResponse {

@@ -1,10 +1,13 @@
+import background_process/executor
+import birl
+import birl/duration
 import ffi/sqlite
 import gleam/erlang/process
-import gleam/function
+import gleam/int
 import gleam/list
 import gleam/otp/actor
 import gleam/result
-import lib/jobs/executor
+import lib/logger
 import lib/utils
 import models/task
 import models/task_run
@@ -13,7 +16,7 @@ pub type SchedulerMessage {
   Schedule
 }
 
-type State {
+pub opaque type State {
   State(
     conn: sqlite.Connection,
     exec_sup: process.Subject(executor.ExecutorMessage),
@@ -25,38 +28,36 @@ pub fn new(
   conn: sqlite.Connection,
   exec_sup: process.Subject(executor.ExecutorMessage),
 ) {
-  actor.start_spec(actor.Spec(
-    init: fn() {
-      let self = process.new_subject()
+  actor.new_with_initialiser(1000, fn(self) {
+    let selector = process.new_selector() |> process.select(self)
 
-      process.send(self, Schedule)
-
-      actor.Ready(
-        State(conn:, exec_sup:, self:),
-        process.new_selector()
-          |> process.selecting(self, function.identity),
-      )
-    },
-    init_timeout: 1000,
-    loop: handle_message,
-  ))
+    actor.initialised(State(conn:, exec_sup:, self:))
+    |> actor.selecting(selector)
+    |> actor.returning(self)
+    |> Ok
+  })
+  |> actor.on_message(handle_message)
+  |> actor.start
 }
 
 pub fn schedule(sub: process.Subject(SchedulerMessage)) {
   actor.send(sub, Schedule)
 }
 
-fn handle_message(message: SchedulerMessage, state: State) {
-  echo "Scheduler running"
-  echo message
+fn handle_message(state: State, message: SchedulerMessage) {
+  let scheduler_logger = logger.new("Scheduler")
 
   let _ = case message {
     Schedule -> {
+      logger.info(scheduler_logger, "Scheduling tasks")
+
       use tasks <- result.try(task.in_next_5_hours(state.conn))
 
       list.each(tasks, fn(task) {
-        echo "looking at task"
-        echo task
+        logger.info(
+          scheduler_logger,
+          "Processing task with id " <> int.to_string(task.id),
+        )
 
         let assert Ok(running_tasks) = task_run.of_task(task.id, state.conn)
 
@@ -67,9 +68,11 @@ fn handle_message(message: SchedulerMessage, state: State) {
               |> task_run.set_task_id(task.id)
               |> task_run.create(state.conn)
 
-            process.send(
-              state.exec_sup,
-              executor.ExecuteSource(new_task_run.id),
+            process.send(state.exec_sup, executor.ExecuteTask(new_task_run.id))
+
+            logger.info(
+              scheduler_logger,
+              "Task scheduled with run id " <> int.to_string(new_task_run.id),
             )
           }
           _ -> {
@@ -84,8 +87,13 @@ fn handle_message(message: SchedulerMessage, state: State) {
     }
   }
 
-  process.sleep(6000)
-  process.send(state.self, Schedule)
+  logger.info(
+    scheduler_logger,
+    "Scheduled next run at "
+      <> birl.utc_now() |> birl.add(duration.minutes(1)) |> birl.to_naive(),
+  )
+
+  process.send_after(state.self, 6000, Schedule)
 
   actor.continue(state)
 }

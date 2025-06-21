@@ -1,12 +1,13 @@
+import background_process/executor
+import background_process/scheduler
 import birl
 import birl/duration
 import ffi/sqlite
 import gleam/erlang/process
 import gleam/list
-import gleam/otp/supervisor
-import gleam/result
-import lib/jobs/executor
-import lib/jobs/scheduler
+import gleam/otp/static_supervisor
+import gleam/otp/supervision
+import lib/logger
 import models/task
 
 pub type SupMessage {
@@ -14,22 +15,32 @@ pub type SupMessage {
 }
 
 pub fn start() {
+  let sup_logger = logger.new("Supervisor")
+
+  logger.info(sup_logger, "Starting supervisor")
+
   use conn <- sqlite.with_connection(sqlite.db_path())
 
-  // use exec_sup <- result.try(executor.new(conn))
-  // use scheduler_sup <- result.try(scheduler.new(conn, exec_sup))
+  logger.info(sup_logger, "Connected to database")
 
-  let exec_worker =
-    supervisor.worker(fn(_) { executor.new(conn) })
-    |> supervisor.returning(fn(_, sub) { sub })
+  let assert Ok(exec_actor) = executor.new(conn)
 
-  let assert Ok(_sup) =
-    supervisor.start(fn(children) {
-      supervisor.add(children, exec_worker)
-      |> supervisor.add(
-        supervisor.worker(fn(exec_sup) { scheduler.new(conn, exec_sup) }),
-      )
-    })
+  logger.info(sup_logger, "Created executor actor")
+
+  let assert Ok(scheduler_actor) = scheduler.new(conn, exec_actor.data)
+
+  logger.info(sup_logger, "Created scheduler actor")
+
+  let assert Ok(_) =
+    static_supervisor.new(static_supervisor.OneForOne)
+    |> static_supervisor.add(supervision.worker(fn() { Ok(exec_actor) }))
+    |> static_supervisor.add(supervision.worker(fn() { Ok(scheduler_actor) }))
+    |> static_supervisor.start()
+
+  logger.info(sup_logger, "Started supervisor")
+
+  process.send(scheduler_actor.data, scheduler.Schedule)
+  logger.info(sup_logger, "Started scheduler")
 
   process.sleep_forever()
 }

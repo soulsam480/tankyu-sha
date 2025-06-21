@@ -5,7 +5,7 @@ import clip/help
 import clip/opt
 import ffi/sqlite
 import gleam/dynamic/decode
-import gleam/erlang
+import gleam/erlang/application
 import gleam/int
 import gleam/io
 import gleam/list
@@ -28,7 +28,7 @@ pub type MigrationOp {
 
 fn find_files() {
   use priv_dir <- result.try(
-    erlang.priv_directory("tankyu_sha")
+    application.priv_directory("tankyu_sha")
     |> error.map_to_snag("Unable to get priv dir"),
   )
 
@@ -208,7 +208,7 @@ fn generate(name: String) {
   let migration_file_name = timestamp <> "_" <> name |> justin.snake_case
 
   use priv_dir <- result.try(
-    erlang.priv_directory("tankyu_sha")
+    application.priv_directory("tankyu_sha")
     |> error.map_to_snag("Unable to get priv dir"),
   )
 

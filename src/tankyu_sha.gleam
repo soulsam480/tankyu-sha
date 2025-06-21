@@ -1,7 +1,8 @@
-import app/legacy
+// import app/legacy
 import lib/error
 
 pub fn main() {
+  todo
   // TODO: POC
   // plan
   // 1. setup search for keywords
@@ -21,5 +22,5 @@ pub fn main() {
   //
   // echo results
 
-  legacy.run_app() |> error.trap
+  // legacy.run_app() |> error.trap
 }

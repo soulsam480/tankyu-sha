@@ -154,8 +154,8 @@ pub fn in_next_5_hours(conn: sqlite.Connection) {
     "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
      FROM tasks 
      WHERE active = 1 
-       AND date(delivery_at) BETWEEN date(?) AND date(?) 
-       AND NOT EXISTS (SELECT 1 FROM task_runs WHERE task_runs.task_id = tasks.id)
+       AND delivery_at BETWEEN ? AND ? 
+       AND NOT EXISTS (SELECT 1 FROM task_runs WHERE task_runs.task_id = tasks.id AND date(task_runs.created_at) = date(?))
      ORDER BY delivery_at ASC;",
     conn,
     [
@@ -164,6 +164,7 @@ pub fn in_next_5_hours(conn: sqlite.Connection) {
         |> birl.add(duration.hours(5))
         |> birl.to_iso8601()
         |> sqlite.bind,
+      birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
     ],
     task_decoder(),
   ))

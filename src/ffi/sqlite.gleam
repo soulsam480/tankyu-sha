@@ -132,7 +132,6 @@ pub fn db_path() {
 }
 
 pub fn get_inserted_id(res: ExecResult) {
-  echo res
   use first_dynamic <- result.try(
     list.first(res.rows) |> error.map_to_snag("Invalid row response"),
   )
