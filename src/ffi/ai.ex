@@ -52,7 +52,7 @@ defmodule Ai do
           "You are an analyst trained to create accessible summaries of complex news content.
 
         Summarize the following article for a general audience. Your summary should:
-        - Use 4–7 concise bullet points
+        - Keep the entire summary around 100-150 words
         - Be written in clear, plain language
         - Avoid jargon, speculation, or exaggeration
         - Capture only the most important facts or arguments
@@ -69,8 +69,7 @@ defmodule Ai do
 " <> article
       )
 
-    # TODO: wrap result
-    res
+    {:ok, res}
   end
 
   def embed(content, model) do

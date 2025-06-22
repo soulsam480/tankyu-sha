@@ -133,16 +133,18 @@ pub fn db_path() {
 
 pub fn get_inserted_id(res: ExecResult) {
   use first_dynamic <- result.try(
-    list.first(res.rows) |> error.map_to_snag("Invalid row response"),
+    list.first(res.rows) |> error.map_to_snag("Unable to find first row"),
   )
 
   use rows <- result.try(
-    decode.run(first_dynamic, decode.list(decode.int))
+    decode.run(first_dynamic, decode.list(decode.optional(decode.int)))
     |> error.map_to_snag("Invalid row response"),
   )
 
   use id <- result.try(
-    list.first(rows) |> error.map_to_snag("Unable to find id"),
+    list.first(rows)
+    |> result.map(fn(val) { option.unwrap(val, -1) })
+    |> error.map_to_snag("Unable to find id"),
   )
 
   Ok(id)

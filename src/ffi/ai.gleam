@@ -1,6 +1,7 @@
 import gleam/dict
 import gleam/dynamic
 import gleam/option.{type Option}
+import gleam/result
 import lib/error
 
 // src/ffi/dom.ex
@@ -8,10 +9,10 @@ import lib/error
 // fn find_source_type(dict: dict.Dict(dom.Key, String)) -> dynamic.Dynamic
 
 @external(erlang, "Elixir.Ai", "get_feed_analysis")
-fn get_feed_analysis(posts: String) -> dict.Dict(String, String)
+fn get_feed_analysis(posts: String) -> Result(dict.Dict(String, String), Nil)
 
 @external(erlang, "Elixir.Ai", "get_news_summary")
-fn get_news_summary(post: String) -> dict.Dict(String, String)
+fn get_news_summary(post: String) -> Result(dict.Dict(String, String), Nil)
 
 pub type Operation {
   SourceType
@@ -26,10 +27,14 @@ pub fn analyse(op: Operation, payload: String) {
       Ok("Not implemented")
     }
     FeedAnalysis -> {
-      get_feed_analysis(payload) |> dict.get("response")
+      get_feed_analysis(payload)
+      |> result.map(dict.get(_, "response"))
+      |> result.flatten
     }
     ContentAnalysis -> {
-      get_news_summary(payload) |> dict.get("response")
+      get_news_summary(payload)
+      |> result.map(dict.get(_, "response"))
+      |> result.flatten
     }
   }
   |> error.map_to_snag("Unable to run analysis")
@@ -47,5 +52,5 @@ pub fn embed(input: List(String), model: Option(String)) {
 
 pub fn pluck_embedding(res: dict.Dict(String, List(List(Float)))) {
   dict.get(res, "embeddings")
-  |> error.map_to_snag("invalid dict")
+  |> error.map_to_snag("Invalid embedding response")
 }

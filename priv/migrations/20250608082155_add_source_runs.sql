@@ -8,8 +8,8 @@ CREATE TABLE source_runs (
     updated_at TEXT NOT NULL,
     source_id INTEGER NOT NULL,
     task_run_id INTEGER,
-    FOREIGN KEY (source_id) REFERENCES sources (id),
-    FOREIGN KEY (task_run_id) REFERENCES task_runs (id)
+    FOREIGN KEY (source_id) REFERENCES sources (id) ON DELETE CASCADE,
+    FOREIGN KEY (task_run_id) REFERENCES task_runs (id) ON DELETE CASCADE
 );
 
 CREATE INDEX index_source_runs_on_source_id ON source_runs (source_id);

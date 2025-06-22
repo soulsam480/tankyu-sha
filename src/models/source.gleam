@@ -89,7 +89,7 @@ fn encode_meta(meta: dict.Dict(String, String)) {
 
 pub fn new() {
   Source(
-    id: -1,
+    id: 0,
     url: "",
     kind: Search,
     meta: dict.new(),

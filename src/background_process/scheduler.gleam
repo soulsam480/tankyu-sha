@@ -51,7 +51,7 @@ fn handle_message(state: State, message: SchedulerMessage) {
     Schedule -> {
       logger.info(scheduler_logger, "Scheduling tasks")
 
-      use tasks <- result.try(task.in_next_5_hours(state.conn))
+      use tasks <- result.try(task.in_next_1_hour(state.conn))
 
       list.each(tasks, fn(task) {
         logger.info(

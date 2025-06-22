@@ -11,6 +11,7 @@ pub type SourceRunStatus {
   Running
   Failure
   Success
+  Embedding
 }
 
 pub type SourceRun {
@@ -74,6 +75,7 @@ fn source_run_status_decoder(status: String) {
     "running" -> Running
     "failure" -> Failure
     "success" -> Success
+    "embedding" -> Embedding
     _ -> Queued
   }
 }
@@ -84,6 +86,7 @@ fn source_run_status_encoder(task_status: SourceRunStatus) -> String {
     Running -> "running"
     Failure -> "failure"
     Success -> "success"
+    Embedding -> "embedding"
   }
 }
 
@@ -218,6 +221,25 @@ pub fn pending_of_task_run(
       task_run_id |> sqlite.option,
       Success |> source_run_status_encoder |> sqlite.bind,
       Failure |> source_run_status_encoder |> sqlite.bind,
+    ],
+    source_run_decoder(),
+  ))
+
+  Ok(items)
+}
+
+pub fn successful_of_task_run(
+  task_run_id: option.Option(Int),
+  conn: sqlite.Connection,
+) {
+  use items <- result.try(sqlite.query(
+    "SELECT id, content, summary, status, created_at, updated_at, source_id, task_run_id 
+     FROM source_runs 
+     WHERE task_run_id = ? AND status = ?;",
+    conn,
+    [
+      task_run_id |> sqlite.option,
+      Success |> source_run_status_encoder |> sqlite.bind,
     ],
     source_run_decoder(),
   ))

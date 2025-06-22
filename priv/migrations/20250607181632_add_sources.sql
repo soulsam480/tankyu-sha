@@ -7,7 +7,7 @@ CREATE TABLE sources (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     task_id INTEGER,
-    FOREIGN KEY (task_id) REFERENCES tasks (id)
+    FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
 );
 
 CREATE INDEX index_sources_on_kind ON sources (kind);

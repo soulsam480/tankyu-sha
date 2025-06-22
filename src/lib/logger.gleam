@@ -3,6 +3,8 @@ import gleam/dict
 import gleam/io
 import gleam/string
 import gleam/string_tree
+import gleamy_lights/premixed
+import justin
 import youid/uuid
 
 pub type LogLevel {
@@ -13,9 +15,9 @@ pub type LogLevel {
 
 fn log_level_to_json(log_level: LogLevel) -> String {
   case log_level {
-    Info -> "info"
-    Warn -> "warn"
-    Notice -> "notice"
+    Info -> "INFO" |> premixed.bg_blue |> premixed.text_white
+    Warn -> "WARN" |> premixed.bg_yellow |> premixed.text_black
+    Notice -> "NOTICE" |> premixed.bg_red |> premixed.text_white
   }
 }
 
@@ -40,6 +42,18 @@ pub fn info(logger: Logger, message: String) {
   Logger(..logger, level: Info) |> write(message)
 }
 
+pub fn trap_info(res: Result(a, b), logger: Logger) {
+  case res {
+    Error(e) -> {
+      Logger(..logger, level: Info) |> write(e |> string.inspect)
+      res
+    }
+    _ -> {
+      res
+    }
+  }
+}
+
 pub fn warn(logger: Logger, message: String) {
   Logger(..logger, level: Warn) |> write(message)
 }
@@ -48,15 +62,37 @@ pub fn notice(logger: Logger, message: String) {
   Logger(..logger, level: Notice) |> write(message)
 }
 
+pub fn trap_warn(res: Result(a, b), logger: Logger) {
+  case res {
+    Error(e) -> {
+      Logger(..logger, level: Warn) |> write(e |> string.inspect)
+      res
+    }
+    _ -> {
+      res
+    }
+  }
+}
+
+pub fn trap_notice(res: Result(a, b), logger: Logger) {
+  case res {
+    Error(e) -> {
+      Logger(..logger, level: Notice) |> write(e |> string.inspect)
+      res
+    }
+    _ -> {
+      res
+    }
+  }
+}
+
 fn write(logger: Logger, message: String) {
   let out =
     string_tree.new()
     |> string_tree.append(birl.utc_now() |> birl.to_naive_time_string() <> " ")
     |> string_tree.append(logger.cid <> " ")
-    |> string_tree.append(
-      log_level_to_json(logger.level) |> string.uppercase <> " ",
-    )
-    |> string_tree.append(string.uppercase(logger.group) <> " ")
+    |> string_tree.append(log_level_to_json(logger.level) <> " ")
+    |> string_tree.append(justin.pascal_case(logger.group) <> " ")
 
   dict.fold(logger.scope, out, fn(acc, key, value) {
     string_tree.append(acc, key <> "=" <> value <> " ")

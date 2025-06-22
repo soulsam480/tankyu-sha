@@ -10,6 +10,7 @@ pub type TaskRunStatus {
   Running
   Failure
   Success
+  Embedding
 }
 
 pub type TaskRun {
@@ -53,6 +54,7 @@ fn task_status_decoder(status: String) {
     "running" -> Running
     "failure" -> Failure
     "success" -> Success
+    "embedding" -> Embedding
     _ -> Queued
   }
 }
@@ -63,6 +65,7 @@ fn task_status_encoder(task_status: TaskRunStatus) -> String {
     Running -> "running"
     Failure -> "failure"
     Success -> "success"
+    Embedding -> "embedding"
   }
 }
 
@@ -135,7 +138,7 @@ pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
       "UPDATE task_runs 
        SET status = ?, 
            content = ?,
-	   task_id = ?,
+           task_id = ?,
            updated_at = ? 
        WHERE id = ?",
       [
