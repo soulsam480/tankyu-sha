@@ -56,6 +56,13 @@ fn handle_message(state: State, message: IngestorMessage) {
         task_run.find(run_id, conn) |> logger.trap_notice(ingest_logger),
       )
 
+      use task_run <- result.try(
+        task_run
+        |> task_run.set_status(task_run.Embedding)
+        |> task_run.update(conn)
+        |> logger.trap_notice(ingest_logger),
+      )
+
       let ingest_logger =
         ingest_logger
         |> logger.with_scope(
@@ -110,10 +117,7 @@ fn handle_message(state: State, message: IngestorMessage) {
           dict.from_list([#("source_run.id", int.to_string(run_id))]),
         )
 
-      logger.info(
-        ingest_logger,
-        "Ingesting source run" <> int.to_string(run_id),
-      )
+      logger.info(ingest_logger, "Ingesting source run")
 
       use source <- result.try(
         source.find(source_run.source_id, conn)

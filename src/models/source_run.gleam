@@ -247,3 +247,19 @@ pub fn successful_of_task_run(
 
   Ok(items)
 }
+
+pub fn pending_in_last_30_minutes(conn: sqlite.Connection) {
+  use items <- result.try(sqlite.query(
+    "SELECT id, content, summary, status, created_at, updated_at, source_id, task_run_id
+     FROM source_runs
+     WHERE (status = ? OR status = ?) AND updated_at >= DATETIME('now', '-30 minutes');",
+    conn,
+    [
+      Running |> source_run_status_encoder |> sqlite.bind,
+      Embedding |> source_run_status_encoder |> sqlite.bind,
+    ],
+    source_run_decoder(),
+  ))
+
+  Ok(items)
+}

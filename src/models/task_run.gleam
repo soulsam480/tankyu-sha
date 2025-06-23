@@ -1,9 +1,11 @@
 import birl
 import ffi/sqlite
 import gleam/dynamic/decode
+import gleam/int
 import gleam/list
 import gleam/result
 import lib/error
+import snag
 
 pub type TaskRunStatus {
   Queued
@@ -131,6 +133,36 @@ pub fn find(id: Int, conn: sqlite.Connection) {
   Ok(first)
 }
 
+/// Loads all task runs with pagination.
+///
+/// Args:
+///   page_number: The desired page number (1-indexed).
+///   page_size: The maximum number of items to return per page.
+///   conn: The database connection.
+///
+/// Returns:
+///   A Result containing a list of TaskRun records or a Snag if an error occurs.
+pub fn all(
+  page_number: Int,
+  page_size: Int,
+  conn: sqlite.Connection,
+) -> Result(List(TaskRun), snag.Snag) {
+  // Ensure page_number is at least 1, as pagination is typically 1-indexed.
+  let safe_page_number = int.max(1, page_number)
+
+  let offset = { safe_page_number - 1 } * page_size
+  let limit = page_size
+
+  sqlite.query(
+    "SELECT id, task_id, status, content, created_at, updated_at
+     FROM task_runs
+     LIMIT ? OFFSET ?;",
+    conn,
+    [limit |> sqlite.bind, offset |> sqlite.bind],
+    task_run_decoder(),
+  )
+}
+
 pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
   use _ <- result.try(
     sqlite.exec(
@@ -162,6 +194,22 @@ pub fn of_task(task_id: Int, conn: sqlite.Connection) {
      ORDER BY created_at DESC;",
     conn,
     [task_id |> sqlite.bind],
+    task_run_decoder(),
+  ))
+
+  Ok(items)
+}
+
+pub fn pending_in_last_30_minutes(conn: sqlite.Connection) {
+  use items <- result.try(sqlite.query(
+    "SELECT id, task_id, status, content, created_at, updated_at
+     FROM task_runs
+     WHERE (status = ? OR status = ?) AND updated_at >= DATETIME('now', '-30 minutes');",
+    conn,
+    [
+      Running |> task_status_encoder |> sqlite.bind,
+      Embedding |> task_status_encoder |> sqlite.bind,
+    ],
     task_run_decoder(),
   ))
 

@@ -93,7 +93,8 @@ fn handle_message(state: State, message: SchedulerMessage) {
       <> birl.utc_now() |> birl.add(duration.minutes(1)) |> birl.to_naive(),
   )
 
-  process.send_after(state.self, 6000, Schedule)
+  // Schedule the next run in 5 minutes
+  process.send_after(state.self, 6000 * 5, Schedule)
 
   actor.continue(state)
 }
