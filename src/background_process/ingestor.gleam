@@ -112,7 +112,7 @@ fn handle_message(state: State, message: IngestorMessage) {
 
       logger.info(
         ingest_logger,
-        "Processing source run for embedding " <> int.to_string(run_id),
+        "Ingesting source run" <> int.to_string(run_id),
       )
 
       use source <- result.try(
@@ -120,7 +120,7 @@ fn handle_message(state: State, message: IngestorMessage) {
         |> logger.trap_notice(ingest_logger),
       )
 
-      use _ <- result.try(
+      use source_run <- result.try(
         source_run
         |> source_run.set_status(source_run.Embedding)
         |> source_run.update(conn)
@@ -141,7 +141,7 @@ fn handle_message(state: State, message: IngestorMessage) {
 
           logger.info(ingest_logger, "Done analysing run. Updating run data")
 
-          use _ <- result.try(
+          use source_run <- result.try(
             source_run
             |> source_run.set_summary(option.Some(summary))
             |> source_run.update(conn)
@@ -195,7 +195,7 @@ fn handle_message(state: State, message: IngestorMessage) {
             "Successfully embedded and stored source run content.",
           )
 
-          use _ <- result.try(
+          use source_run <- result.try(
             source_run
             |> source_run.set_status(source_run.Success)
             |> source_run.update(conn)
@@ -271,10 +271,10 @@ fn prepare_source_meta(
     int.to_string(index + 1)
       <> ". Extracted from "
       <> source.url
-      <> "."
+      <> ". "
       <> "The source is of type "
       <> string.inspect(source.kind)
-      <> "."
+      <> ". "
       <> "The data was collected at "
       <> {
       birl.parse(source_run.updated_at)

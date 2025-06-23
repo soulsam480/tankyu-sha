@@ -171,7 +171,7 @@ pub fn find(id: Int, conn: sqlite.Connection) {
 }
 
 pub fn update(source_run: SourceRun, conn: sqlite.Connection) {
-  let res =
+  use _ <- result.try(
     sqlite.exec(
       conn,
       "UPDATE source_runs 
@@ -189,9 +189,10 @@ pub fn update(source_run: SourceRun, conn: sqlite.Connection) {
         birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
         source_run.id |> sqlite.bind,
       ],
-    )
+    ),
+  )
 
-  Ok(result.is_ok(res))
+  Ok(source_run)
 }
 
 pub fn of_source(source_id: Int, conn: sqlite.Connection) {

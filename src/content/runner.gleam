@@ -40,10 +40,6 @@ pub fn run(run: source_run.SourceRun, conn: sqlite.Connection) {
         |> source_run.set_status(source_run.Success)
         |> source_run.update(conn)
 
-      // TODO: schedule summary
-      // TODO: ingest content and store embeddings
-      // we need a new actor for this maybe
-
       logger.info(runner_logger, "Successfully ran source.")
 
       Ok(Nil)

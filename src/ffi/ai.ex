@@ -1,6 +1,6 @@
 defmodule Ai do
   def find_source_type(dict) do
-    client = Ollama.init()
+    client = Ollama.init(receive_timeout: 60_000 * 4)
 
     {:ok, res} =
       Ollama.completion(client,
@@ -23,7 +23,7 @@ defmodule Ai do
   end
 
   def get_feed_analysis(posts) do
-    client = Ollama.init()
+    client = Ollama.init(receive_timeout: 60_000 * 4)
 
     {:ok, res} =
       Ollama.completion(client,
@@ -41,23 +41,25 @@ defmodule Ai do
     res
   end
 
-  def get_news_summary(article) do
-    client = Ollama.init()
+  def get_news_summary(article, model \\ "deepseek-r1:7b") do
+    client = Ollama.init(receive_timeout: 60_000 * 4)
 
     {:ok, res} =
       Ollama.completion(client,
-        # model: "deepseek-r1:7b",
-        model: "llama3.2:3b",
+        model: model,
         prompt:
           "You are an analyst trained to create accessible summaries of complex news content.
 
         Summarize the following article for a general audience. Your summary should:
-        - Keep the entire summary around 100-150 words
+        - Keep the entire summary around 150-200 words
+        - Throw in some tables, bullet points or any sort of formatting ONLY when necessary to make it easily readable
         - Be written in clear, plain language
         - Avoid jargon, speculation, or exaggeration
         - Capture only the most important facts or arguments
         - Avoid quoting or citing specific people unless necessary
         - If a claim is disputed, mention that it's disputed. Avoid emotionally charged language or analogies unless directly quoted and clearly attributed.
+        - AVOID PUTTING ADDITIONAL HEADERS_FOOTERS WITH THE SUMMARY e.g. Here's a summary of x
+        - The summary should be in GitHub flavored markdown
 
         Use this example as a format:
 
@@ -65,7 +67,7 @@ defmodule Ai do
         - Experts believe delays were caused by supply chain issues.
         - The government has not responded to the findings yet.
 
-        Now summarize the article below:
+        Now summarize the article below with additional instructions in the end if present:
 " <> article
       )
 
@@ -73,7 +75,7 @@ defmodule Ai do
   end
 
   def embed(content, model) do
-    client = Ollama.init()
+    client = Ollama.init(receive_timeout: 60_000 * 4)
 
     Ollama.embed(client, model: model, input: content)
   end

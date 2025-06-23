@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "tankyu_sha_workspace",
+  "version": "1.0.0",
+  "system_prompt": "You are an AI assistant designed to understand and interact with the 'tankyu_sha' project. 'tankyu_sha' is an AI-assisted personal digest tool that gathers information from the internet, summarizes it, and delivers daily digests. Your goal is to provide context and answer questions about its functionality, architecture, and user experience based on the provided codebase.",
+  "vars": {},
+  "groups": [
+    {
+      "name": "Project Overview & Goals",
+      "system_prompt": "This group provides a high-level understanding of the 'tankyu_sha' project's overall purpose, its main features, and the foundational operational flow. Focus on what the project aims to achieve and its core capabilities.",
+      "data": ["readme_file", "plan_file"]
+    },
+    {
+      "name": "Data Acquisition Strategy",
+      "system_prompt": "This group details how 'tankyu_sha' gathers information from external sources. Focus on the strategy for identifying and collecting data, including source types (news, blogs, RSS), content cleaning considerations, and web search mechanisms, without delving into low-level scraping implementation details.",
+      "data": ["readme_file", "plan_file", "internet_search_gleam"]
+    },
+    {
+      "name": "Core System Architecture & Data Models",
+      "system_prompt": "This group outlines the internal structure and data organization of 'tankyu_sha'. Focus on the definition and relationships of key entities like tasks, sources, source runs, task runs, and digests, as described in the system's planned architecture.",
+      "data": ["plan_file"]
+    },
+    {
+      "name": "User Experience & Task Management",
+      "system_prompt": "This group describes how users interact with 'tankyu_sha'. Focus on the processes for defining and managing digest tasks, including task creation, editing, deletion, and how users access generated digests. Consider both the planned user experience and initial CLI interactions.",
+      "data": ["plan_file", "legacy_app_gleam"]
+    },
+    {
+      "name": "LLM & Content Processing",
+      "system_prompt": "This group details the role of Large Language Models (LLMs) within 'tankyu_sha'. Focus on how collected content is processed, summarized, and prepared for AI interaction, including concepts like content analysis, summarization, embedding generation, and enabling follow-up questions.",
+      "data": ["ingestor_gleam", "readme_file", "plan_file"]
+    }
+  ],
+  "data": {
+    "readme_file": {
+      "type": "file",
+      "path": "README.md",
+      "description": "The main README file providing an overview, how-to-run instructions, and initial plan details of the tankyu_sha project."
+    },
+    "plan_file": {
+      "type": "file",
+      "path": "plan.md",
+      "description": "Detailed planning document outlining outcomes, tentative user experience (UX), and the system's internal data models and architecture."
+    },
+    "ingestor_gleam": {
+      "type": "file",
+      "path": "src/background_process/ingestor.gleam",
+      "description": "Gleam code responsible for processing collected data, orchestrating LLM calls for summarization and embedding, and managing the state of source and task runs."
+    },
+    "legacy_app_gleam": {
+      "type": "file",
+      "path": "src/app/legacy.gleam",
+      "description": "The initial Gleam CLI application logic that handles user interaction for defining search terms and selecting sources, serving as a conceptual example of user input processing."
+    },
+    "internet_search_gleam": {
+      "type": "file",
+      "path": "src/services/internet_search.gleam",
+      "description": "Gleam service for performing internet searches (e.g., DuckDuckGo) and handling the retrieval of search results, contributing to the data acquisition strategy."
+    }
+  }
+}
+

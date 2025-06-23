@@ -70,11 +70,11 @@ pub fn main() {
   ]
 
   let articles = [
-    "https://lite.cnn.com//2025/06/21/weather/heat-dome-climate",
-    "https://lite.cnn.com//2025/06/21/politics/iran-b-2-bombers-trump",
-    "https://lite.cnn.com//2025/06/20/us/mahmoud-khalil-ordered-released-by-judge",
-    "https://lite.cnn.com//us/ice-immigration-officers-face-masks",
-    "https://lite.cnn.com//2025/06/21/middleeast/americans-israel-desperate-get-out-intl-latam",
+    "https://lite.cnn.com/2025/06/21/weather/heat-dome-climate",
+    "https://lite.cnn.com/2025/06/21/politics/iran-b-2-bombers-trump",
+    "https://lite.cnn.com/2025/06/20/us/mahmoud-khalil-ordered-released-by-judge",
+    "https://lite.cnn.com/us/ice-immigration-officers-face-masks",
+    "https://lite.cnn.com/2025/06/21/middleeast/americans-israel-desperate-get-out-intl-latam",
     "https://lite.cnn.com/2025/06/21/sport/jacob-misiorowski-125-year-old-record-spt",
   ]
 

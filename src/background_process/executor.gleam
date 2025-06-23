@@ -70,7 +70,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
         |> logger.trap_notice(exec_logger),
       )
 
-      use _ <- result.try(
+      use task_run <- result.try(
         task_run
         |> task_run.set_status(task_run.Running)
         |> task_run.update(conn)
@@ -154,7 +154,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
           ]),
         )
 
-      use _ <- result.try(
+      use run <- result.try(
         run
         |> source_run.set_status(source_run.Running)
         |> source_run.update(state.conn)

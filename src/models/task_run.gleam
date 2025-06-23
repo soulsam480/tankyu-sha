@@ -132,7 +132,7 @@ pub fn find(id: Int, conn: sqlite.Connection) {
 }
 
 pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
-  let res =
+  use _ <- result.try(
     sqlite.exec(
       conn,
       "UPDATE task_runs 
@@ -148,9 +148,10 @@ pub fn update(task_run: TaskRun, conn: sqlite.Connection) {
         birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
         task_run.id |> sqlite.bind,
       ],
-    )
+    ),
+  )
 
-  Ok(result.is_ok(res))
+  Ok(task_run)
 }
 
 pub fn of_task(task_id: Int, conn: sqlite.Connection) {
