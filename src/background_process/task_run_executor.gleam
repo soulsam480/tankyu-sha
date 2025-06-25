@@ -1,5 +1,5 @@
 import background_process/ingestor
-import content/runner
+import background_process/source_run_executor
 import ffi/sqlite
 import gleam/dict
 import gleam/erlang/process
@@ -18,23 +18,31 @@ type State {
   State(
     conn: sqlite.Connection,
     ingestor_sub: process.Subject(ingestor.IngestorMessage),
+    source_run_executor_sub: process.Subject(
+      source_run_executor.ExecutorMessage,
+    ),
     self: process.Subject(ExecutorMessage),
   )
 }
 
 pub type ExecutorMessage {
-  ExecuteSource(run_id: Int)
   ExecuteTask(task_run_id: Int)
 }
 
 pub fn new(
   conn: sqlite.Connection,
   ingestor_sub: process.Subject(ingestor.IngestorMessage),
+  source_run_executor_sub: process.Subject(source_run_executor.ExecutorMessage),
 ) {
   actor.new_with_initialiser(1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(conn:, ingestor_sub:, self:))
+    actor.initialised(State(
+      conn:,
+      ingestor_sub:,
+      source_run_executor_sub:,
+      self:,
+    ))
     |> actor.selecting(selector)
     |> actor.returning(self)
     |> Ok
@@ -44,8 +52,6 @@ pub fn new(
 }
 
 fn handle_message(state: State, message: ExecutorMessage) {
-  let State(conn, ingestor_sup, self) = state
-
   let exec_logger = logger.new("Executor")
 
   let _ = case message {
@@ -53,7 +59,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
       logger.info(exec_logger, "Executing task run " <> int.to_string(run_id))
 
       use task_run <- result.try(
-        task_run.find(run_id, conn) |> logger.trap_notice(exec_logger),
+        task_run.find(run_id, state.conn) |> logger.trap_notice(exec_logger),
       )
 
       let exec_logger =
@@ -66,14 +72,14 @@ fn handle_message(state: State, message: ExecutorMessage) {
         )
 
       use sources <- result.try(
-        source.of_task(task_run.task_id, conn)
+        source.of_task(task_run.task_id, state.conn)
         |> logger.trap_notice(exec_logger),
       )
 
       use task_run <- result.try(
         task_run
         |> task_run.set_status(task_run.Running)
-        |> task_run.update(conn)
+        |> task_run.update(state.conn)
         |> logger.trap_notice(exec_logger),
       )
 
@@ -87,7 +93,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
           use _ <- result.try(
             task_run
             |> task_run.set_status(task_run.Success)
-            |> task_run.update(conn)
+            |> task_run.update(state.conn)
             |> logger.trap_notice(exec_logger),
           )
 
@@ -117,11 +123,14 @@ fn handle_message(state: State, message: ExecutorMessage) {
               source_run.new()
               |> source_run.set_task_run_id(task_run.id)
               |> source_run.set_source_id(source.id)
-              |> source_run.create(conn)
+              |> source_run.create(state.conn)
               |> logger.trap_notice(exec_logger),
             )
 
-            process.send(self, ExecuteSource(sour_run.id))
+            process.send(
+              state.source_run_executor_sub,
+              source_run_executor.ExecuteSource(sour_run.id),
+            )
 
             logger.info(
               exec_logger,
@@ -134,43 +143,6 @@ fn handle_message(state: State, message: ExecutorMessage) {
           Ok(Nil)
         }
       }
-    }
-
-    ExecuteSource(run_id) -> {
-      logger.info(exec_logger, "Executing source run " <> int.to_string(run_id))
-
-      use run <- result.try(
-        source_run.find(run_id, state.conn) |> logger.trap_notice(exec_logger),
-      )
-
-      let scoped_source_logger =
-        exec_logger
-        |> logger.with_scope(
-          dict.from_list([
-            #("source_run.id", int.to_string(run.source_id)),
-            #("source_run.kind", string.inspect(run.source_id)),
-            #("source_run.created_at", run.created_at),
-            #("source_run.set_task_run_id", string.inspect(run.task_run_id)),
-          ]),
-        )
-
-      use run <- result.try(
-        run
-        |> source_run.set_status(source_run.Running)
-        |> source_run.update(state.conn)
-        |> logger.trap_notice(exec_logger),
-      )
-
-      let _ = runner.run(run, state.conn)
-
-      logger.info(
-        scoped_source_logger,
-        "Source run completed. Scheduling ingestion.",
-      )
-
-      process.send(ingestor_sup, ingestor.SourceRun(run_id))
-
-      Ok(Nil)
     }
   }
 

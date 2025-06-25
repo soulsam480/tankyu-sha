@@ -18,6 +18,7 @@ pub fn main() {
   process.spawn_unlinked(supervisor.start)
 
   wisp.configure_logger()
+  wisp.set_logger_level(wisp.DebugLevel)
 
   let secret_key_base = wisp.random_string(64)
 

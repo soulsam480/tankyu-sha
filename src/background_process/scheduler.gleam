@@ -1,4 +1,4 @@
-import background_process/executor
+import background_process/task_run_executor
 import birl
 import birl/duration
 import ffi/sqlite
@@ -19,19 +19,19 @@ pub type SchedulerMessage {
 pub opaque type State {
   State(
     conn: sqlite.Connection,
-    exec_sup: process.Subject(executor.ExecutorMessage),
+    task_run_exec_sub: process.Subject(task_run_executor.ExecutorMessage),
     self: process.Subject(SchedulerMessage),
   )
 }
 
 pub fn new(
   conn: sqlite.Connection,
-  exec_sup: process.Subject(executor.ExecutorMessage),
+  task_run_exec_sub: process.Subject(task_run_executor.ExecutorMessage),
 ) {
   actor.new_with_initialiser(1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(conn:, exec_sup:, self:))
+    actor.initialised(State(conn:, task_run_exec_sub:, self:))
     |> actor.selecting(selector)
     |> actor.returning(self)
     |> Ok
@@ -68,7 +68,10 @@ fn handle_message(state: State, message: SchedulerMessage) {
               |> task_run.set_task_id(task.id)
               |> task_run.create(state.conn)
 
-            process.send(state.exec_sup, executor.ExecuteTask(new_task_run.id))
+            process.send(
+              state.task_run_exec_sub,
+              task_run_executor.ExecuteTask(new_task_run.id),
+            )
 
             logger.info(
               scheduler_logger,

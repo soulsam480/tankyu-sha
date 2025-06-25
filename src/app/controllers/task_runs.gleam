@@ -83,6 +83,8 @@ fn dash(ctx: router_context.RouterContext) -> wisp.Response {
           <> curr.updated_at
           <> ". Current status "
           <> string.inspect(curr.status)
+          <> "with content <br/>"
+          <> curr.content
           <> "</li>",
         )
       },

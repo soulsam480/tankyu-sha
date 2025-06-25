@@ -1,7 +1,8 @@
 import background_process/cleaner
-import background_process/executor
 import background_process/ingestor
 import background_process/scheduler
+import background_process/source_run_executor
+import background_process/task_run_executor
 import ffi/sqlite
 import gleam/erlang/process
 import gleam/list
@@ -19,12 +20,12 @@ pub fn start() {
 
   use conn <- sqlite.with_connection(sqlite.db_path())
 
-  // TODO: remove
-  let assert Ok(all_tasks) = task.all(conn)
-
-  list.each(all_tasks, task.destroy(_, conn))
-
-  // TODO: remove above
+  // // TODO: remove
+  // let assert Ok(all_tasks) = task.all(conn)
+  //
+  // list.each(all_tasks, task.destroy(_, conn))
+  //
+  // // TODO: remove above
 
   logger.info(sup_logger, "Connected to database")
 
@@ -32,11 +33,17 @@ pub fn start() {
 
   logger.info(sup_logger, "Created ingestor actor")
 
-  let assert Ok(exec_actor) = executor.new(conn, ingest_actor.data)
+  let assert Ok(source_exec_actor) =
+    source_run_executor.new(conn, ingest_actor.data)
 
-  logger.info(sup_logger, "Created executor actor")
+  logger.info(sup_logger, "Created source executor actor")
 
-  let assert Ok(scheduler_actor) = scheduler.new(conn, exec_actor.data)
+  let assert Ok(task_exec_actor) =
+    task_run_executor.new(conn, ingest_actor.data, source_exec_actor.data)
+
+  logger.info(sup_logger, "Created task executor actor")
+
+  let assert Ok(scheduler_actor) = scheduler.new(conn, task_exec_actor.data)
 
   logger.info(sup_logger, "Created scheduler actor")
 
@@ -49,7 +56,8 @@ pub fn start() {
     // 3. keep playwright instance alive in background
     static_supervisor.new(static_supervisor.OneForOne)
     |> static_supervisor.add(supervision.worker(fn() { Ok(ingest_actor) }))
-    |> static_supervisor.add(supervision.worker(fn() { Ok(exec_actor) }))
+    |> static_supervisor.add(supervision.worker(fn() { Ok(task_exec_actor) }))
+    |> static_supervisor.add(supervision.worker(fn() { Ok(source_exec_actor) }))
     |> static_supervisor.add(supervision.worker(fn() { Ok(scheduler_actor) }))
     |> static_supervisor.add(supervision.worker(fn() { Ok(cleaner_actor) }))
     |> static_supervisor.start()

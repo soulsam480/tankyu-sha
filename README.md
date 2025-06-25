@@ -32,6 +32,9 @@ in a while. will fix that
 - [ ] keep playwright instance alive and every request is a new conetxt + tab or
       reuse same context
 - [ ] finish search source
+- [ ] expose all config options via UI
+  - summarry model, embedding model, or maybe a model per run
+  - chromium location <- useful when running outside docker
 - [ ] add courier actor to send digest
 - [ ] add UI for home page task + source creation
 - [ ] add UI for task list
