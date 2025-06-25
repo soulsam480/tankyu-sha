@@ -1,4 +1,4 @@
-import background_process/ingestor
+import background_process/source_run_ingestor
 import content/runner
 import ffi/sqlite
 import gleam/dict
@@ -13,7 +13,9 @@ import models/source_run
 type State {
   State(
     conn: sqlite.Connection,
-    ingestor_sub: process.Subject(ingestor.IngestorMessage),
+    source_run_ingestor_sub: process.Subject(
+      source_run_ingestor.IngestorMessage,
+    ),
     self: process.Subject(ExecutorMessage),
   )
 }
@@ -24,12 +26,12 @@ pub type ExecutorMessage {
 
 pub fn new(
   conn: sqlite.Connection,
-  ingestor_sub: process.Subject(ingestor.IngestorMessage),
+  source_run_ingestor_sub: process.Subject(source_run_ingestor.IngestorMessage),
 ) {
   actor.new_with_initialiser(1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(conn:, ingestor_sub:, self:))
+    actor.initialised(State(conn:, source_run_ingestor_sub:, self:))
     |> actor.selecting(selector)
     |> actor.returning(self)
     |> Ok
@@ -74,7 +76,10 @@ fn handle_message(state: State, message: ExecutorMessage) {
         "Source run completed. Scheduling ingestion.",
       )
 
-      process.send(state.ingestor_sub, ingestor.SourceRun(run_id))
+      process.send(
+        state.source_run_ingestor_sub,
+        source_run_ingestor.SourceRun(run_id),
+      )
 
       Ok(Nil)
     }

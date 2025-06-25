@@ -1,5 +1,5 @@
-import background_process/ingestor
 import background_process/source_run_executor
+import background_process/source_run_ingestor
 import ffi/sqlite
 import gleam/dict
 import gleam/erlang/process
@@ -17,7 +17,9 @@ import models/task_run
 type State {
   State(
     conn: sqlite.Connection,
-    ingestor_sub: process.Subject(ingestor.IngestorMessage),
+    source_run_ingestor_sub: process.Subject(
+      source_run_ingestor.IngestorMessage,
+    ),
     source_run_executor_sub: process.Subject(
       source_run_executor.ExecutorMessage,
     ),
@@ -31,7 +33,9 @@ pub type ExecutorMessage {
 
 pub fn new(
   conn: sqlite.Connection,
-  ingestor_sub: process.Subject(ingestor.IngestorMessage),
+  source_run_ingestor_sub: process.Subject(
+    source_run_ingestor.IngestorMessage,
+  ),
   source_run_executor_sub: process.Subject(source_run_executor.ExecutorMessage),
 ) {
   actor.new_with_initialiser(1000, fn(self) {
@@ -39,7 +43,7 @@ pub fn new(
 
     actor.initialised(State(
       conn:,
-      ingestor_sub:,
+      source_run_ingestor_sub:,
       source_run_executor_sub:,
       self:,
     ))

@@ -1,15 +1,14 @@
 import background_process/cleaner
-import background_process/ingestor
 import background_process/scheduler
 import background_process/source_run_executor
+import background_process/source_run_ingestor
 import background_process/task_run_executor
+import background_process/task_run_ingestor
 import ffi/sqlite
 import gleam/erlang/process
-import gleam/list
 import gleam/otp/static_supervisor
 import gleam/otp/supervision
 import lib/logger
-import models/task
 
 /// main entry of all background processes
 /// todo more comments
@@ -29,17 +28,26 @@ pub fn start() {
 
   logger.info(sup_logger, "Connected to database")
 
-  let assert Ok(ingest_actor) = ingestor.new(conn)
+  let assert Ok(task_ingest_actor) = task_run_ingestor.new(conn)
 
-  logger.info(sup_logger, "Created ingestor actor")
+  logger.info(sup_logger, "Created task ingestor actor")
+
+  let assert Ok(source_ingest_actor) =
+    source_run_ingestor.new(conn, task_ingest_actor.data)
+
+  logger.info(sup_logger, "Created source ingestor actor")
 
   let assert Ok(source_exec_actor) =
-    source_run_executor.new(conn, ingest_actor.data)
+    source_run_executor.new(conn, source_ingest_actor.data)
 
   logger.info(sup_logger, "Created source executor actor")
 
   let assert Ok(task_exec_actor) =
-    task_run_executor.new(conn, ingest_actor.data, source_exec_actor.data)
+    task_run_executor.new(
+      conn,
+      source_ingest_actor.data,
+      source_exec_actor.data,
+    )
 
   logger.info(sup_logger, "Created task executor actor")
 
@@ -55,7 +63,10 @@ pub fn start() {
     // 2. pool for actors
     // 3. keep playwright instance alive in background
     static_supervisor.new(static_supervisor.OneForOne)
-    |> static_supervisor.add(supervision.worker(fn() { Ok(ingest_actor) }))
+    |> static_supervisor.add(supervision.worker(fn() { Ok(task_ingest_actor) }))
+    |> static_supervisor.add(
+      supervision.worker(fn() { Ok(source_ingest_actor) }),
+    )
     |> static_supervisor.add(supervision.worker(fn() { Ok(task_exec_actor) }))
     |> static_supervisor.add(supervision.worker(fn() { Ok(source_exec_actor) }))
     |> static_supervisor.add(supervision.worker(fn() { Ok(scheduler_actor) }))

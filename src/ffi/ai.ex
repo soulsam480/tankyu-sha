@@ -22,7 +22,7 @@ defmodule Ai do
     client = Ollama.init(receive_timeout: 60_000 * 4)
 
     Ollama.completion(client,
-      model: "deepseek-r1:7b",
+      model: model,
       prompt:
         "You're an expert information analyst that can give summary of content posted by people/companies on the internet.
         This content can be anything from their future bussiness plans, announcing something new, landing a new job, announcing
