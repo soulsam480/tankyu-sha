@@ -10,6 +10,7 @@ import gleam/otp/actor
 import gleam/result
 import gleam/string_tree
 import lib/logger
+import lifeguard
 import models/source
 import models/source_run
 import models/task_run
@@ -22,17 +23,24 @@ pub opaque type State {
   State(conn: sqlite.Connection, self: process.Subject(IngestorMessage))
 }
 
-pub fn new(conn: sqlite.Connection) {
-  actor.new_with_initialiser(1000, fn(self) {
+pub fn new_name() {
+  process.new_name("TaskRunIngestor")
+}
+
+pub fn new(
+  name: process.Name(lifeguard.PoolMsg(IngestorMessage)),
+  conn: sqlite.Connection,
+) {
+  lifeguard.new_with_initialiser(name, 1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(conn:, self:))
-    |> actor.selecting(selector)
-    |> actor.returning(self)
+    lifeguard.initialised(State(conn:, self:))
+    |> lifeguard.selecting(selector)
     |> Ok
   })
-  |> actor.on_message(handle_message)
-  |> actor.start
+  |> lifeguard.on_message(handle_message)
+  |> lifeguard.size(10)
+  |> lifeguard.supervised(1000)
 }
 
 fn handle_message(state: State, message: IngestorMessage) {

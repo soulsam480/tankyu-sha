@@ -13,19 +13,25 @@ pub type CleanerMessage {
 }
 
 pub opaque type State {
-  State(conn: sqlite.Connection, self: process.Subject(CleanerMessage))
+  State(conn: sqlite.Connection, self: process.Name(CleanerMessage))
 }
 
-pub fn new(conn: sqlite.Connection) {
-  actor.new_with_initialiser(1000, fn(self) {
-    let selector = process.new_selector() |> process.select(self)
+pub fn new_name() {
+  process.new_name("Cleaner")
+}
 
-    actor.initialised(State(conn:, self:))
+pub fn new(name: process.Name(CleanerMessage), conn: sqlite.Connection) {
+  actor.new_with_initialiser(1000, fn(_) {
+    let sub = process.named_subject(name)
+
+    let selector = process.new_selector() |> process.select(sub)
+
+    actor.initialised(State(conn:, self: name))
     |> actor.selecting(selector)
-    |> actor.returning(self)
     |> Ok
   })
   |> actor.on_message(handle_message)
+  |> actor.named(name)
   |> actor.start
 }
 
@@ -90,7 +96,7 @@ fn handle_message(state: State, message: CleanerMessage) {
   }
 
   // Schedule the next run in 15 minutes (900,000 milliseconds)
-  process.send_after(state.self, 900_000, CheckStaleRuns)
+  process.send_after(process.named_subject(state.self), 900_000, CheckStaleRuns)
 
   actor.continue(state)
 }

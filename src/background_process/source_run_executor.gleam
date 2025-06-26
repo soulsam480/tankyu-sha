@@ -8,15 +8,15 @@ import gleam/otp/actor
 import gleam/result
 import gleam/string
 import lib/logger
+import lifeguard
 import models/source_run
 
 type State {
   State(
     conn: sqlite.Connection,
-    source_run_ingestor_sub: process.Subject(
-      source_run_ingestor.IngestorMessage,
+    source_run_ingestor_name: process.Name(
+      lifeguard.PoolMsg(source_run_ingestor.IngestorMessage),
     ),
-    self: process.Subject(ExecutorMessage),
   )
 }
 
@@ -24,20 +24,27 @@ pub type ExecutorMessage {
   ExecuteSource(run_id: Int)
 }
 
+pub fn new_name() {
+  process.new_name("SourceRunExecutor")
+}
+
 pub fn new(
+  name: process.Name(lifeguard.PoolMsg(ExecutorMessage)),
   conn: sqlite.Connection,
-  source_run_ingestor_sub: process.Subject(source_run_ingestor.IngestorMessage),
+  source_run_ingestor_name: process.Name(
+    lifeguard.PoolMsg(source_run_ingestor.IngestorMessage),
+  ),
 ) {
-  actor.new_with_initialiser(1000, fn(self) {
+  lifeguard.new_with_initialiser(name, 1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(conn:, source_run_ingestor_sub:, self:))
-    |> actor.selecting(selector)
-    |> actor.returning(self)
+    lifeguard.initialised(State(conn:, source_run_ingestor_name:))
+    |> lifeguard.selecting(selector)
     |> Ok
   })
-  |> actor.on_message(handle_message)
-  |> actor.start()
+  |> lifeguard.on_message(handle_message)
+  |> lifeguard.size(10)
+  |> lifeguard.supervised(1000)
 }
 
 fn handle_message(state: State, message: ExecutorMessage) {
@@ -76,10 +83,12 @@ fn handle_message(state: State, message: ExecutorMessage) {
         "Source run completed. Scheduling ingestion.",
       )
 
-      process.send(
-        state.source_run_ingestor_sub,
-        source_run_ingestor.SourceRun(run_id),
-      )
+      let _ =
+        lifeguard.send(
+          process.named_subject(state.source_run_ingestor_name),
+          source_run_ingestor.SourceRun(run_id),
+          1000,
+        )
 
       Ok(Nil)
     }

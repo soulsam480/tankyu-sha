@@ -19,66 +19,51 @@ pub fn start() {
 
   use conn <- sqlite.with_connection(sqlite.db_path())
 
-  // // TODO: remove
-  // let assert Ok(all_tasks) = task.all(conn)
-  //
-  // list.each(all_tasks, task.destroy(_, conn))
-  //
-  // // TODO: remove above
-
   logger.info(sup_logger, "Connected to database")
 
-  let assert Ok(task_ingest_actor) = task_run_ingestor.new(conn)
-
-  logger.info(sup_logger, "Created task ingestor actor")
-
-  let assert Ok(source_ingest_actor) =
-    source_run_ingestor.new(conn, task_ingest_actor.data)
-
-  logger.info(sup_logger, "Created source ingestor actor")
-
-  let assert Ok(source_exec_actor) =
-    source_run_executor.new(conn, source_ingest_actor.data)
-
-  logger.info(sup_logger, "Created source executor actor")
-
-  let assert Ok(task_exec_actor) =
-    task_run_executor.new(
-      conn,
-      source_ingest_actor.data,
-      source_exec_actor.data,
-    )
-
-  logger.info(sup_logger, "Created task executor actor")
-
-  let assert Ok(scheduler_actor) = scheduler.new(conn, task_exec_actor.data)
-
-  logger.info(sup_logger, "Created scheduler actor")
-
-  let assert Ok(cleaner_actor) = cleaner.new(conn)
-  logger.info(sup_logger, "Created cleaner actor")
+  let scheduler_name = scheduler.new_name()
+  let task_run_ingestor_name = task_run_ingestor.new_name()
+  let source_run_ingestor_name = source_run_ingestor.new_name()
+  let source_run_executor_name = source_run_executor.new_name()
+  let task_run_executor_name = task_run_executor.new_name()
+  let cleaner_name = cleaner.new_name()
 
   let assert Ok(_) =
-    // TODO: 1. flatten all actor messages to separate actors
-    // 2. pool for actors
+    // TODO:
     // 3. keep playwright instance alive in background
     static_supervisor.new(static_supervisor.OneForOne)
-    |> static_supervisor.add(supervision.worker(fn() { Ok(task_ingest_actor) }))
+    |> static_supervisor.add(task_run_ingestor.new(task_run_ingestor_name, conn))
+    |> static_supervisor.add(source_run_ingestor.new(
+      source_run_ingestor_name,
+      conn,
+      task_run_ingestor_name,
+    ))
+    |> static_supervisor.add(task_run_executor.new(
+      task_run_executor_name,
+      conn,
+      source_run_executor_name,
+    ))
+    |> static_supervisor.add(source_run_executor.new(
+      source_run_executor_name,
+      conn,
+      source_run_ingestor_name,
+    ))
     |> static_supervisor.add(
-      supervision.worker(fn() { Ok(source_ingest_actor) }),
+      supervision.worker(fn() {
+        scheduler.new(scheduler_name, conn, task_run_executor_name)
+      }),
     )
-    |> static_supervisor.add(supervision.worker(fn() { Ok(task_exec_actor) }))
-    |> static_supervisor.add(supervision.worker(fn() { Ok(source_exec_actor) }))
-    |> static_supervisor.add(supervision.worker(fn() { Ok(scheduler_actor) }))
-    |> static_supervisor.add(supervision.worker(fn() { Ok(cleaner_actor) }))
+    |> static_supervisor.add(
+      supervision.worker(fn() { cleaner.new(cleaner_name, conn) }),
+    )
     |> static_supervisor.start()
 
   logger.info(sup_logger, "Started supervisor")
 
-  process.send(scheduler_actor.data, scheduler.Schedule)
+  process.send(process.named_subject(scheduler_name), scheduler.Schedule)
   logger.info(sup_logger, "Started scheduler")
 
-  process.send(cleaner_actor.data, cleaner.CheckStaleRuns)
+  process.send(process.named_subject(cleaner_name), cleaner.CheckStaleRuns)
   logger.info(sup_logger, "Started cleaner")
 
   process.sleep_forever()

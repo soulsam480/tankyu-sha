@@ -14,6 +14,7 @@ import gleam/string_tree
 import lib/error
 import lib/logger
 import lib/utils
+import lifeguard
 import models/document
 import models/source
 import models/source_run
@@ -29,33 +30,37 @@ pub type IngestorMessage {
 pub opaque type State {
   State(
     conn: sqlite.Connection,
-    self: process.Subject(IngestorMessage),
-    task_run_ingestor_sub: process.Subject(
-      task_run_ingestor.IngestorMessage,
+    task_run_ingestor_name: process.Name(
+      lifeguard.PoolMsg(task_run_ingestor.IngestorMessage),
     ),
   )
 }
 
+pub fn new_name() {
+  process.new_name("SourceRunIngestor")
+}
+
 pub fn new(
+  name: process.Name(lifeguard.PoolMsg(IngestorMessage)),
   conn: sqlite.Connection,
-  task_run_ingestor_sub: process.Subject(
-    task_run_ingestor.IngestorMessage,
+  task_run_ingestor_name: process.Name(
+    lifeguard.PoolMsg(task_run_ingestor.IngestorMessage),
   ),
 ) {
-  actor.new_with_initialiser(1000, fn(self) {
+  lifeguard.new_with_initialiser(name, 1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(conn:, self:, task_run_ingestor_sub:))
-    |> actor.selecting(selector)
-    |> actor.returning(self)
+    lifeguard.initialised(State(conn:, task_run_ingestor_name:))
+    |> lifeguard.selecting(selector)
     |> Ok
   })
-  |> actor.on_message(handle_message)
-  |> actor.start
+  |> lifeguard.on_message(handle_message)
+  |> lifeguard.size(10)
+  |> lifeguard.supervised(1000)
 }
 
 fn handle_message(state: State, message: IngestorMessage) {
-  let State(conn, _self, task_run_ingestor_sub) = state
+  let State(conn, task_run_ingestor_name) = state
 
   let ingest_logger = logger.new("SourceRunIngestor")
 
@@ -175,10 +180,12 @@ fn handle_message(state: State, message: IngestorMessage) {
 
               case utils.list_is_empty(runs) {
                 True -> {
-                  process.send(
-                    task_run_ingestor_sub,
-                    task_run_ingestor.TaskRun(run_id),
-                  )
+                  let _ =
+                    lifeguard.send(
+                      process.named_subject(task_run_ingestor_name),
+                      task_run_ingestor.TaskRun(run_id),
+                      1000,
+                    )
 
                   logger.info(
                     ingest_logger,

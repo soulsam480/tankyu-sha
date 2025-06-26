@@ -1,5 +1,4 @@
 import background_process/source_run_executor
-import background_process/source_run_ingestor
 import ffi/sqlite
 import gleam/dict
 import gleam/erlang/process
@@ -10,6 +9,7 @@ import gleam/result
 import gleam/string
 import lib/logger
 import lib/utils
+import lifeguard
 import models/source
 import models/source_run
 import models/task_run
@@ -17,13 +17,9 @@ import models/task_run
 type State {
   State(
     conn: sqlite.Connection,
-    source_run_ingestor_sub: process.Subject(
-      source_run_ingestor.IngestorMessage,
+    source_run_executor_name: process.Name(
+      lifeguard.PoolMsg(source_run_executor.ExecutorMessage),
     ),
-    source_run_executor_sub: process.Subject(
-      source_run_executor.ExecutorMessage,
-    ),
-    self: process.Subject(ExecutorMessage),
   )
 }
 
@@ -31,28 +27,27 @@ pub type ExecutorMessage {
   ExecuteTask(task_run_id: Int)
 }
 
+pub fn new_name() {
+  process.new_name("TaskRunExecutor")
+}
+
 pub fn new(
+  name: process.Name(lifeguard.PoolMsg(ExecutorMessage)),
   conn: sqlite.Connection,
-  source_run_ingestor_sub: process.Subject(
-    source_run_ingestor.IngestorMessage,
+  source_run_executor_name: process.Name(
+    lifeguard.PoolMsg(source_run_executor.ExecutorMessage),
   ),
-  source_run_executor_sub: process.Subject(source_run_executor.ExecutorMessage),
 ) {
-  actor.new_with_initialiser(1000, fn(self) {
+  lifeguard.new_with_initialiser(name, 1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
-    actor.initialised(State(
-      conn:,
-      source_run_ingestor_sub:,
-      source_run_executor_sub:,
-      self:,
-    ))
-    |> actor.selecting(selector)
-    |> actor.returning(self)
+    lifeguard.initialised(State(conn:, source_run_executor_name:))
+    |> lifeguard.selecting(selector)
     |> Ok
   })
-  |> actor.on_message(handle_message)
-  |> actor.start()
+  |> lifeguard.on_message(handle_message)
+  |> lifeguard.size(10)
+  |> lifeguard.supervised(1000)
 }
 
 fn handle_message(state: State, message: ExecutorMessage) {
@@ -131,10 +126,12 @@ fn handle_message(state: State, message: ExecutorMessage) {
               |> logger.trap_notice(exec_logger),
             )
 
-            process.send(
-              state.source_run_executor_sub,
-              source_run_executor.ExecuteSource(sour_run.id),
-            )
+            let _ =
+              lifeguard.send(
+                process.named_subject(state.source_run_executor_name),
+                source_run_executor.ExecuteSource(sour_run.id),
+                1000,
+              )
 
             logger.info(
               exec_logger,

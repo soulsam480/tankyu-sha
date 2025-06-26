@@ -9,6 +9,7 @@ import gleam/otp/actor
 import gleam/result
 import lib/logger
 import lib/utils
+import lifeguard
 import models/task
 import models/task_run
 
@@ -19,24 +20,35 @@ pub type SchedulerMessage {
 pub opaque type State {
   State(
     conn: sqlite.Connection,
-    task_run_exec_sub: process.Subject(task_run_executor.ExecutorMessage),
-    self: process.Subject(SchedulerMessage),
+    task_run_exec_name: process.Name(
+      lifeguard.PoolMsg(task_run_executor.ExecutorMessage),
+    ),
+    self: process.Name(SchedulerMessage),
   )
 }
 
-pub fn new(
-  conn: sqlite.Connection,
-  task_run_exec_sub: process.Subject(task_run_executor.ExecutorMessage),
-) {
-  actor.new_with_initialiser(1000, fn(self) {
-    let selector = process.new_selector() |> process.select(self)
+pub fn new_name() {
+  process.new_name("Scheduler")
+}
 
-    actor.initialised(State(conn:, task_run_exec_sub:, self:))
+pub fn new(
+  name: process.Name(SchedulerMessage),
+  conn: sqlite.Connection,
+  task_run_exec_name: process.Name(
+    lifeguard.PoolMsg(task_run_executor.ExecutorMessage),
+  ),
+) {
+  actor.new_with_initialiser(1000, fn(_) {
+    let sub = process.named_subject(name)
+
+    let selector = process.new_selector() |> process.select(sub)
+
+    actor.initialised(State(conn:, task_run_exec_name:, self: name))
     |> actor.selecting(selector)
-    |> actor.returning(self)
     |> Ok
   })
   |> actor.on_message(handle_message)
+  |> actor.named(name)
   |> actor.start
 }
 
@@ -68,10 +80,12 @@ fn handle_message(state: State, message: SchedulerMessage) {
               |> task_run.set_task_id(task.id)
               |> task_run.create(state.conn)
 
-            process.send(
-              state.task_run_exec_sub,
-              task_run_executor.ExecuteTask(new_task_run.id),
-            )
+            let _ =
+              lifeguard.send(
+                process.named_subject(state.task_run_exec_name),
+                task_run_executor.ExecuteTask(new_task_run.id),
+                1000,
+              )
 
             logger.info(
               scheduler_logger,
@@ -97,7 +111,7 @@ fn handle_message(state: State, message: SchedulerMessage) {
   )
 
   // Schedule the next run in 5 minutes
-  process.send_after(state.self, 6000 * 5, Schedule)
+  process.send_after(process.named_subject(state.self), 6000 * 5, Schedule)
 
   actor.continue(state)
 }
