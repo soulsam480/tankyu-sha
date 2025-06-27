@@ -26,9 +26,9 @@ in a while. will fix that
 
 ### Roadmap (in no particular order)
 
-- [ ] flatten all actor messages to separate actors <- rn all of them are
+- [x] flatten all actor messages to separate actors <- rn all of them are
       blocked even though we can move ahead
-- [ ] actor pool for all actors
+- [x] actor pool for all actors
 - [ ] keep playwright instance alive and every request is a new conetxt + tab or
       reuse same context
 - [ ] finish search source

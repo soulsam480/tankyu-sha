@@ -162,6 +162,8 @@ fn handle_message(state: State, message: IngestorMessage) {
           use source_run <- result.try(
             source_run
             |> source_run.set_status(source_run.Success)
+            // NOTE: we're nullifying the original content so that ingested docuements become the single source of truth
+            |> source_run.set_content(option.None)
             |> source_run.update(conn)
             |> logger.trap_notice(ingest_logger),
           )

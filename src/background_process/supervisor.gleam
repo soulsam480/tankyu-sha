@@ -61,10 +61,7 @@ pub fn start() {
   logger.info(sup_logger, "Started supervisor")
 
   process.send(process.named_subject(scheduler_name), scheduler.Schedule)
-  logger.info(sup_logger, "Started scheduler")
-
   process.send(process.named_subject(cleaner_name), cleaner.CheckStaleRuns)
-  logger.info(sup_logger, "Started cleaner")
 
   process.sleep_forever()
 }

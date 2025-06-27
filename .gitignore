@@ -9,3 +9,5 @@ dist
 storage_state.json
 development.sqlite3
 .opencode
+*.gen.ts
+.cta.*

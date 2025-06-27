@@ -3,6 +3,7 @@ bun = "latest"
 elixir = "latest"
 erlang = "27.0"
 gleam = "latest"
+node = "lts"
 rebar = "3"
 
 [tasks."migrate:new"]
