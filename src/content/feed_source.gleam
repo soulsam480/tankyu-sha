@@ -19,17 +19,11 @@ type KnownFeeds {
 }
 
 pub fn run(source: source.Source) {
-  get_feed_posts(source)
-}
-
-fn get_feed_posts(source: source.Source) {
   use kind <- result.try(feed_kind(source))
 
   case kind {
     LinkedIn -> {
-      use base_result <- result.try(
-        browser.load(source.url, ["--kind=LinkedIn"]),
-      )
+      use base_result <- result.try(browser.load(source.url, ["kind=LinkedIn"]))
 
       case base_result {
         browser.SuccessResponse(data) -> {

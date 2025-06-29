@@ -44,6 +44,8 @@ export class Search extends Source {
 
     const { term = '', pages: _pages = '1' } = this.params
 
+    console.log(this.params)
+
     const pages = Number(_pages)
 
     if (term) {

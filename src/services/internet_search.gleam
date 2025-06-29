@@ -1,8 +1,8 @@
 import ffi/dom
 import gleam/dict
 import gleam/dynamic/decode
-import gleam/hackney
 import gleam/http/request
+import gleam/httpc
 import gleam/int
 import gleam/list
 import gleam/option
@@ -43,7 +43,7 @@ pub fn ddg_simple(
     |> request.set_header("Sec-Fetch-Dest", "document")
     |> request.set_header("Sec-Fetch-Mode", "navigate")
     |> request.set_header("Sec-Fetch-Site", "none")
-    |> hackney.send
+    |> httpc.send
     |> error.map_to_snag("Unable to send request with error: ")
     |> error.trap,
   )
@@ -121,11 +121,11 @@ fn ddg_query_params(params: List(DdgParam)) -> String {
 fn ddg_pages(pages: List(DdgParam)) -> String {
   list.find_map(pages, fn(it) {
     case it {
-      Pages(count) -> Ok("--pages=" <> count)
-      _ -> Ok("--pages=1")
+      Pages(count) -> Ok("pages=" <> count)
+      _ -> Ok("pages=1")
     }
   })
-  |> result.unwrap("--pages=1")
+  |> result.unwrap("pages=1")
 }
 
 pub type SearchResult {
@@ -179,10 +179,13 @@ pub fn ddg(
 ) -> Result(List(SearchResult), snag.Snag) {
   use response <- result.try(
     browser.load(
-      "https://duckduckgo.com?q="
+      {
+        "https://duckduckgo.com?q="
         <> uri.percent_encode(term)
-        <> ddg_query_params(params),
-      ["--kind=Search", ddg_pages(params)],
+        <> ddg_query_params(params)
+      }
+        |> echo,
+      ["kind=Search", ddg_pages(params), "headed=1"],
     ),
   )
 

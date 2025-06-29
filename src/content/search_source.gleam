@@ -11,7 +11,7 @@ pub fn run(source: source.Source) {
 
   use results <- result.try(
     internet_search.ddg(search_descr, [
-      internet_search.Pages("3"),
+      internet_search.Pages("1"),
       internet_search.Range("d"),
     ]),
   )
@@ -19,4 +19,13 @@ pub fn run(source: source.Source) {
   echo results
 
   Ok("")
+}
+
+pub fn main() {
+  run(
+    source.new()
+    |> source.set_meta(
+      dict.from_list([#("search_str", "default linkedin profile")]),
+    ),
+  )
 }

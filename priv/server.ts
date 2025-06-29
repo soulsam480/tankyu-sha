@@ -1,68 +1,65 @@
+import fastify from 'fastify'
 import { chromium } from 'playwright-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import dotenv from 'dotenv'
 import { Linkedin } from './modules/linkedin.mjs'
-import { parseArgs } from 'node:util'
 import { Search } from './modules/search.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { News } from './modules/news.mjs'
+import type { ChromiumBrowser } from 'playwright'
 
-dotenv.config({ quiet: true })
+dotenv.config()
 
 chromium.use(StealthPlugin())
 
 const STORAGE_STATE_PATH = path.join(process.cwd(), 'storage_state.json')
 
-const SERVICE_TO_CTOR = {
-  LinkedIn: Linkedin,
-  News: News,
-  Search: Search
+const SERVICE_TO_CTOR = { LinkedIn: Linkedin, News: News, Search: Search }
+
+let browser: ChromiumBrowser | null = null
+
+const app = fastify({ logger: true })
+
+app.get('/', (_, reply) => {
+  reply.send('OK')
+})
+
+app.get('/api/close', (_, reply) => {
+  reply.status(202).send({ ok: true })
+
+  setTimeout(() => {
+    browser?.close()
+    process.exit(0)
+  }, 100)
+})
+
+interface QueryParams {
+  use_system?: boolean
+  url: string
+  kind: keyof typeof SERVICE_TO_CTOR
+  [x: string]: any
+  headed?: boolean
 }
 
-/** @type {import("playwright").ChromiumBrowser | null} */
-let browser = null
+app.get<{
+  Querystring: QueryParams
+}>('/api/process', async (req, reply) => {
+  const { use_system = null, headed = null, url, kind, ...params } = req.query
 
-async function main() {
   let close
 
   try {
-    const { values } = parseArgs({
-      strict: false,
-      allowNegative: true,
-      options: {
-        url: {
-          type: 'string',
-          default: ''
-        },
-        kind: {
-          type: 'string'
-        },
-        term: {
-          type: 'string',
-          default: ''
-        },
-        headless: {
-          type: 'boolean',
-          default: true
-        }
-      }
-    })
-
-    const { url, ...params } = values
-
-    /** @type {keyof typeof SERVICE_TO_CTOR | null} */
-    // @ts-expect-error
-    const kind = values.kind || null
-
     if (!url) {
-      console.log(JSON.stringify({ error: { type: 'NO_URL' } }))
+      reply.code(400).send({ error: { type: 'NO_URL' } })
       return
     }
 
-    browser = await chromium.launch({
-      headless: Boolean(values.headless),
-      executablePath: '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    browser ??= await chromium.launch({
+      headless: !headed,
+      executablePath: use_system
+        ? undefined
+        : '/Applications/Chromium.app/Contents/MacOS/Chromium',
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
@@ -78,6 +75,7 @@ async function main() {
 
       context = await browser.newContext({
         bypassCSP: true,
+
         storageState: JSON.parse(storageState)
       })
     } catch (_) {
@@ -86,13 +84,13 @@ async function main() {
       })
     }
 
-    context.route('**/*', (route, req) => {
-      const url = req.url()
+    context.route('**/*', (route, request) => {
+      const url = request.url()
 
       // NOTE: we're responding with dummy css so client
       // rendered apps continue to work when stylesheets are
       // injectsed dynamically to the page with link tags
-      if (req.resourceType() === 'stylesheet') {
+      if (request.resourceType() === 'stylesheet') {
         return route.fulfill({
           status: 200,
           contentType: 'text/css',
@@ -101,7 +99,7 @@ async function main() {
       }
 
       if (
-        ['image', 'font', 'media'].includes(route.request().resourceType()) ||
+        ['image', 'font', 'media'].includes(request.resourceType()) ||
         url.includes('googletagmanager') ||
         url.includes('doubleclick')
       ) {
@@ -121,18 +119,12 @@ async function main() {
         )
       } catch (_) {}
 
-      if (!browser?.isConnected()) {
-        return
-      }
-
       await context?.close()
-      await browser?.close()
     }
 
     if (!kind) {
       await close()
-      console.log(JSON.stringify({ data: [] }))
-
+      reply.send({ data: [] })
       return
     }
 
@@ -140,54 +132,41 @@ async function main() {
 
     if (!Ctor) {
       await close()
-      console.log(JSON.stringify({ error: { type: 'UNKNOWN_SOURCE' } }))
+      reply.code(400).send({ error: { type: 'UNKNOWN_SOURCE' } })
       return
     }
 
-    /**  @type {import("./modules/source.mjs").Source} */
-    // @ts-expect-error ignore
-    const source = new Ctor(context, params)
+    const source: import('./modules/source.mjs').Source = new Ctor(
+      context,
+      params
+    )
 
     await source.init()
 
     const response = await source.process(String(url))
 
-    console.log(response)
+    reply.send(response)
   } catch (e) {
-    console.log(
-      JSON.stringify({
-        error: {
-          type: 'PROCESS_ERROR',
-          details:
-            typeof e?.toString === 'function' ? e.toString() : JSON.stringify(e)
-        }
-      })
-    )
+    reply.code(500).send({
+      error: {
+        type: 'PROCESS_ERROR',
+        details:
+          typeof e?.toString === 'function' ? e.toString() : JSON.stringify(e)
+      }
+    })
   } finally {
     close?.()
   }
+})
+
+// Run the server!
+const start = async () => {
+  try {
+    await app.listen({ port: Number(process.env.BROWSER_SERVICE_PORT || 3000) })
+  } catch (err) {
+    app.log.error(err)
+    process.exit(1)
+  }
 }
 
-main()
-
-process.on('SIGINT', async () => {
-  try {
-    if (!browser?.isConnected()) {
-      return
-    }
-
-    await browser?.close()
-  } finally {
-  }
-})
-
-process.on('exit', async () => {
-  try {
-    if (!browser?.isConnected()) {
-      return
-    }
-
-    await browser?.close()
-  } finally {
-  }
-})
+start()

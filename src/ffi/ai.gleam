@@ -38,7 +38,7 @@ pub fn analyse(op: Operation, payload: String) {
       |> result.flatten
     }
     ContentAnalysis -> {
-      get_news_summary(payload, "llama3.2:3b")
+      get_news_summary(payload, "gemma3n:e2b-it-q4_K_M")
       |> result.map(dict.get(_, "response"))
       |> result.flatten
       |> result.map(strip_thinking)

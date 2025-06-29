@@ -1,5 +1,5 @@
 defmodule Ai do
-  def find_source_type(dict, model \\ "deepseek-r1:7b") do
+  def find_source_type(dict, model \\ "gemma3n:e2b-it-q4_K_M") do
     client = Ollama.init(receive_timeout: 60_000 * 4)
 
     Ollama.completion(client,
@@ -18,7 +18,7 @@ defmodule Ai do
     )
   end
 
-  def get_feed_analysis(posts, model \\ "deepseek-r1:7b") do
+  def get_feed_analysis(posts, model \\ "gemma3n:e2b-it-q4_K_M") do
     client = Ollama.init(receive_timeout: 60_000 * 4)
 
     Ollama.completion(client,
@@ -33,7 +33,7 @@ defmodule Ai do
     )
   end
 
-  def get_news_summary(article, model \\ "deepseek-r1:7b") do
+  def get_news_summary(article, model \\ "gemma3n:e2b-it-q4_K_M") do
     client = Ollama.init(receive_timeout: 60_000 * 4)
 
     Ollama.completion(client,

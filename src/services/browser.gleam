@@ -1,33 +1,23 @@
+import envoy
 import gleam/dynamic
 import gleam/dynamic/decode
 import gleam/erlang/process
+import gleam/http/request
+import gleam/httpc
 import gleam/json
 import gleam/list
 import gleam/result
-import gleam/string
+import gleam/string_tree
+import gleam/uri
 import lib/error
 import shellout
 import snag
-
-type BrowserError(a) {
-  ShellError(a)
-  TaskError(a)
-}
 
 pub fn load_raw(
   url url: String,
   with opts: List(String),
 ) -> Result(String, snag.Snag) {
-  let task_sub = process.new_subject()
-
-  let _ =
-    process.spawn_unlinked(fn() { process.send(task_sub, do_load(url, opts)) })
-
-  process.new_selector()
-  |> process.select(task_sub)
-  |> process.selector_receive_forever()
-  |> result.map_error(fn(e) { TaskError(e |> string.inspect) })
-  |> error.map_to_snag("Browser load error")
+  do_load(url, opts) |> error.map_to_snag("Browser load error")
 }
 
 pub fn load(
@@ -45,26 +35,27 @@ pub fn load(
 }
 
 fn do_load(url: String, opts: List(String)) {
-  let has_debug = list.find(opts, fn(it) { string.contains(it, "--debug") })
+  start_service()
 
-  let command_opt = {
-    case has_debug {
-      Ok(_) -> [shellout.LetBeStderr, shellout.LetBeStdout]
-      _ -> []
-    }
-  }
+  let params =
+    list.fold(
+      opts,
+      string_tree.new()
+        |> string_tree.append("url=" <> uri.percent_encode(url)),
+      fn(acc, curr) { acc |> string_tree.append("&" <> curr) },
+    )
+    |> string_tree.to_string
 
-  let arguments = {
-    let base = ["priv/run.mjs", "--url=" <> url] |> list.append(opts)
+  use req <- result.try(
+    make_servive_req("/api/process?" <> params)
+    |> error.map_to_snag("Unable to make request"),
+  )
 
-    case has_debug {
-      Ok(_) -> base |> list.prepend("--inspect")
-      _ -> base
-    }
-  }
+  use resp <- result.try(
+    httpc.send(req) |> error.map_to_snag("Unable to send request"),
+  )
 
-  shellout.command("node", arguments, ".", command_opt)
-  |> result.map_error(fn(e) { ShellError(e |> string.inspect) })
+  Ok(resp.body)
 }
 
 pub type BrowserResponse {
@@ -84,4 +75,69 @@ fn decode_base_result(json_str: String) {
   }
 
   json.parse(json_str, decode.one_of(success_decoder, [error_decoder]))
+}
+
+fn make_servive_req(path: String) {
+  let port = envoy.get("BROWSER_SERVICE_PORT") |> result.unwrap("3005")
+  let url = "http://localhost:" <> port <> path
+
+  request.to(url)
+  |> result.map(fn(req) {
+    req
+    |> request.set_header("Accept", "application/json")
+  })
+}
+
+pub fn is_service_running() {
+  use req <- result.try(
+    make_servive_req("") |> error.map_to_snag("Unable to make request"),
+  )
+
+  let res = httpc.send(req)
+
+  case res {
+    Error(_) -> Ok(False)
+    Ok(v) -> Ok(v.status == 200)
+  }
+}
+
+pub fn kill_service() {
+  use req <- result.try(
+    make_servive_req("/api/close")
+    |> error.map_to_snag("Unable to make request"),
+  )
+
+  use resp <- result.try(
+    httpc.send(req) |> error.map_to_snag("unable to send request"),
+  )
+
+  Ok(resp.status == 202)
+}
+
+fn start_service() {
+  case is_service_running() {
+    Ok(False) -> {
+      let sub = process.new_subject()
+
+      let sel =
+        process.new_selector()
+        |> process.select(sub)
+
+      let _ =
+        process.spawn_unlinked(fn() {
+          let res = shellout.command("npm", ["run", "start:runner"], ".", [])
+          process.send(sub, res)
+        })
+
+      let _ =
+        sel
+        |> process.selector_receive(4000)
+
+      Nil
+    }
+
+    _ -> {
+      Nil
+    }
+  }
 }

@@ -13,7 +13,7 @@ pub fn run(source: source.Source) {
 }
 
 fn load_content(source: source.Source) {
-  use response <- result.try(browser.load(source.url, ["--kind=News"]))
+  use response <- result.try(browser.load(source.url, ["kind=News"]))
 
   case response {
     browser.SuccessResponse(data) -> {
