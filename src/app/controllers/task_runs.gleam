@@ -49,11 +49,11 @@ fn queue_new(ctx: router_context.RouterContext) -> wisp.Response {
 
   list.zip(list.shuffle(delivery_times), list.shuffle(articles))
   |> list.each(fn(it) {
-    let #(delivery_time, article) = it
+    let #(_delivery_time, article) = it
 
     let assert Ok(ts) =
       task.new()
-      |> task.set_delivery_at(delivery_time)
+      |> task.set_schedule("")
       |> task.create(ctx.conn)
 
     source.new()

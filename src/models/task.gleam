@@ -1,8 +1,8 @@
 import birl
-import birl/duration
 import ffi/sqlite
 import gleam/dynamic/decode
 import gleam/list
+import gleam/option.{type Option}
 import gleam/result
 import lib/error
 
@@ -11,7 +11,8 @@ pub type Task {
     id: Int,
     topic: String,
     active: Bool,
-    delivery_at: String,
+    schedule: String,
+    last_run_at: Option(String),
     delivery_route: String,
     created_at: String,
     updated_at: String,
@@ -22,7 +23,13 @@ fn task_decoder() -> decode.Decoder(Task) {
   use id <- decode.field("id", decode.int)
   use topic <- decode.optional_field("topic", "", decode.string)
   use active <- decode.optional_field("active", True, sqlite.decode_bool())
-  use delivery_at <- decode.optional_field("delivery_at", "", decode.string)
+  use schedule <- decode.optional_field("schedule", "", decode.string)
+
+  use last_run_at <- decode.optional_field(
+    "last_run_at",
+    option.None,
+    decode.optional(decode.string),
+  )
 
   use delivery_route <- decode.optional_field(
     "delivery_route",
@@ -37,7 +44,8 @@ fn task_decoder() -> decode.Decoder(Task) {
     id:,
     topic:,
     active:,
-    delivery_at:,
+    schedule:,
+    last_run_at:,
     delivery_route:,
     created_at:,
     updated_at:,
@@ -49,7 +57,8 @@ pub fn new() {
     id: 0,
     topic: "",
     active: True,
-    delivery_at: "",
+    schedule: "",
+    last_run_at: option.None,
     delivery_route: "",
     created_at: birl.utc_now() |> birl.to_iso8601(),
     updated_at: birl.utc_now() |> birl.to_iso8601(),
@@ -64,8 +73,12 @@ pub fn set_active(task: Task, active: Bool) {
   Task(..task, active:)
 }
 
-pub fn set_delivery_at(task: Task, delivery_at: String) {
-  Task(..task, delivery_at:)
+pub fn set_schedule(task: Task, schedule: String) {
+  Task(..task, schedule:)
+}
+
+pub fn set_last_run_at(task: Task, last_run_at: String) {
+  Task(..task, last_run_at: option.Some(last_run_at))
 }
 
 pub fn set_delivery_route(task: Task, delivery_route: String) {
@@ -76,13 +89,13 @@ pub fn create(task: Task, connection: sqlite.Connection) {
   use res <- result.try(
     sqlite.exec(
       connection,
-      "INSERT INTO tasks (topic, active, delivery_at, delivery_route, created_at, updated_at) 
+      "INSERT INTO tasks (topic, active, schedule, delivery_route, created_at, updated_at) 
        VALUES (?, ?, ?, ?, ?, ?)
        RETURNING id;",
       [
         task.topic |> sqlite.bind,
         task.active |> sqlite.bool,
-        task.delivery_at |> sqlite.bind,
+        task.schedule |> sqlite.bind,
         task.delivery_route |> sqlite.bind,
         task.created_at |> sqlite.bind,
         task.updated_at |> sqlite.bind,
@@ -97,7 +110,7 @@ pub fn create(task: Task, connection: sqlite.Connection) {
 
 pub fn find(id: Int, conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
-    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
+    "SELECT id, topic, active, schedule, last_run_at, delivery_route, created_at, updated_at 
      FROM tasks 
      WHERE id = ?;",
     conn,
@@ -119,15 +132,16 @@ pub fn update(task: Task, conn: sqlite.Connection) {
       "UPDATE tasks 
        SET topic = ?, 
            active = ?, 
-           delivery_at = ?, 
-           delivery_route = ?, 
+           schedule = ?, 
+           delivery_route = ?,
+           last_run_at = ?
        WHERE id = ?",
       [
         task.topic |> sqlite.bind,
         task.active |> sqlite.bool,
-        task.delivery_at |> sqlite.bind,
+        task.schedule |> sqlite.bind,
         task.delivery_route |> sqlite.bind,
-        birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
+        task.last_run_at |> sqlite.option,
         task.id |> sqlite.bind,
       ],
     )
@@ -135,37 +149,17 @@ pub fn update(task: Task, conn: sqlite.Connection) {
   result.is_ok(res)
 }
 
-pub fn active(conn: sqlite.Connection) {
-  use items <- result.try(sqlite.query(
-    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
-     FROM tasks 
-     WHERE active = 1
-     ORDER BY delivery_at ASC;",
-    conn,
-    [],
-    task_decoder(),
-  ))
+pub fn active_for_page(conn: sqlite.Connection, page: Int) {
+  let limit = 10
 
-  Ok(items)
-}
+  let offset = { page - 1 } * limit
 
-pub fn in_next_1_hour(conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
-    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
-     FROM tasks 
-     WHERE active = 1 
-       AND delivery_at BETWEEN ? AND ? 
-       AND NOT EXISTS (SELECT 1 FROM task_runs WHERE task_runs.task_id = tasks.id AND date(task_runs.created_at) = date(?))
-     ORDER BY delivery_at ASC;",
+    "SELECT id, topic, active, schedule, last_run_at, delivery_route, created_at, updated_at 
+    FROM tasks 
+    LIMIT ? OFFSET ?;",
     conn,
-    [
-      birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
-      birl.utc_now()
-        |> birl.add(duration.hours(1))
-        |> birl.to_iso8601()
-        |> sqlite.bind,
-      birl.utc_now() |> birl.to_iso8601() |> sqlite.bind,
-    ],
+    [limit |> sqlite.bind, offset |> sqlite.bind],
     task_decoder(),
   ))
 
@@ -184,7 +178,7 @@ pub fn all_with_pagination(connection: sqlite.Connection, page: Int) {
   let offset = { page - 1 } * limit
 
   use items <- result.try(sqlite.query(
-    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at 
+    "SELECT id, topic, active, schedule, last_run_at, delivery_route, created_at, updated_at 
     FROM tasks 
     LIMIT ? OFFSET ?;",
     connection,
@@ -197,7 +191,7 @@ pub fn all_with_pagination(connection: sqlite.Connection, page: Int) {
 
 pub fn all(connection: sqlite.Connection) {
   use items <- result.try(sqlite.query(
-    "SELECT id, topic, active, delivery_at, delivery_route, created_at, updated_at
+    "SELECT id, topic, active, schedule, last_run_at, delivery_route, created_at, updated_at
      FROM tasks;",
     connection,
     [],

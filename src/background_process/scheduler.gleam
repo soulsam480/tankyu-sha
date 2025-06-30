@@ -1,6 +1,8 @@
 import background_process/task_run_executor
 import birl
 import birl/duration
+import clockwork
+import clockwork/schedule as clock_schedule
 import ffi/sqlite
 import gleam/erlang/process
 import gleam/int
@@ -63,39 +65,15 @@ fn handle_message(state: State, message: SchedulerMessage) {
     Schedule -> {
       logger.info(scheduler_logger, "Scheduling tasks")
 
-      use tasks <- result.try(task.in_next_1_hour(state.conn))
+      use tasks <- result.try(task.active_for_page(state.conn, 1))
 
       list.each(tasks, fn(task) {
         logger.info(
           scheduler_logger,
-          "Processing task with id " <> int.to_string(task.id),
+          "Creating scheduler for task " <> int.to_string(task.id),
         )
 
-        let assert Ok(running_tasks) = task_run.of_task(task.id, state.conn)
-
-        case utils.list_is_empty(running_tasks) {
-          True -> {
-            let assert Ok(new_task_run) =
-              task_run.new()
-              |> task_run.set_task_id(task.id)
-              |> task_run.create(state.conn)
-
-            let _ =
-              lifeguard.send(
-                process.named_subject(state.task_run_exec_name),
-                task_run_executor.ExecuteTask(new_task_run.id),
-                1000,
-              )
-
-            logger.info(
-              scheduler_logger,
-              "Task scheduled with run id " <> int.to_string(new_task_run.id),
-            )
-          }
-          _ -> {
-            Nil
-          }
-        }
+        let assert Ok(cron) = clockwork.from_string(task.schedule)
 
         Ok(Nil)
       })
@@ -104,14 +82,32 @@ fn handle_message(state: State, message: SchedulerMessage) {
     }
   }
 
-  logger.info(
-    scheduler_logger,
-    "Scheduled next run at "
-      <> birl.utc_now() |> birl.add(duration.minutes(1)) |> birl.to_naive(),
-  )
-
-  // Schedule the next run in 5 minutes
-  process.send_after(process.named_subject(state.self), 6000 * 5, Schedule)
+  // // Schedule the next run in 5 minutes
+  // process.send_after(process.named_subject(state.self), 6000 * 5, Schedule)
 
   actor.continue(state)
+}
+
+fn schedule_run(
+  task: task.Task,
+  conn: sqlite.Connection,
+  task_exec_sub: process.Subject(
+    lifeguard.PoolMsg(task_run_executor.ExecutorMessage),
+  ),
+) {
+  let assert Ok(new_task_run) =
+    task_run.new()
+    |> task_run.set_task_id(task.id)
+    |> task_run.create(conn)
+
+  let _ =
+    lifeguard.send(
+      task_exec_sub,
+      task_run_executor.ExecuteTask(new_task_run.id),
+      1000,
+    )
+  // logger.info(
+  //   scheduler_logger,
+  //   "Task scheduled with run id " <> int.to_string(new_task_run.id),
+  // )
 }
