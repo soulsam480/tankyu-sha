@@ -1,113 +1,50 @@
 import background_process/task_run_executor
-import birl
-import birl/duration
 import clockwork
-import clockwork/schedule as clock_schedule
+import clockwork/schedule
 import ffi/sqlite
 import gleam/erlang/process
 import gleam/int
 import gleam/list
-import gleam/otp/actor
-import gleam/result
-import lib/logger
-import lib/utils
+import gleam/otp/static_supervisor.{type Builder}
 import lifeguard
 import models/task
 import models/task_run
+import snag
 
-pub type SchedulerMessage {
-  Schedule
-}
-
-pub opaque type State {
-  State(
-    conn: sqlite.Connection,
-    task_run_exec_name: process.Name(
-      lifeguard.PoolMsg(task_run_executor.ExecutorMessage),
-    ),
-    self: process.Name(SchedulerMessage),
-  )
-}
-
-pub fn new_name() {
-  process.new_name("Scheduler")
-}
-
-pub fn new(
-  name: process.Name(SchedulerMessage),
+pub fn schedule_tasks(
+  builder: Builder,
   conn: sqlite.Connection,
-  task_run_exec_name: process.Name(
+  tasl_run_exec_name: process.Name(
     lifeguard.PoolMsg(task_run_executor.ExecutorMessage),
   ),
-) {
-  actor.new_with_initialiser(1000, fn(_) {
-    let sub = process.named_subject(name)
+) -> Result(Builder, snag.Snag) {
+  use tasks <- task.active_batch(conn)
 
-    let selector = process.new_selector() |> process.select(sub)
+  list.fold(tasks, builder, fn(acc, task) {
+    let assert Ok(cron) = clockwork.from_string(task.schedule)
 
-    actor.initialised(State(conn:, task_run_exec_name:, self: name))
-    |> actor.selecting(selector)
-    |> Ok
-  })
-  |> actor.on_message(handle_message)
-  |> actor.named(name)
-  |> actor.start
-}
+    let new_sub = process.new_subject()
 
-pub fn schedule(sub: process.Subject(SchedulerMessage)) {
-  actor.send(sub, Schedule)
-}
+    static_supervisor.add(
+      acc,
+      schedule.new("task_scheduler_" <> int.to_string(task.id), cron, fn() {
+        let assert Ok(new_task_run) =
+          task_run.new()
+          |> task_run.set_task_id(task.id)
+          |> task_run.create(conn)
 
-fn handle_message(state: State, message: SchedulerMessage) {
-  let scheduler_logger = logger.new("Scheduler")
+        let _ =
+          lifeguard.send(
+            process.named_subject(tasl_run_exec_name),
+            task_run_executor.ExecuteTask(new_task_run.id),
+            1000,
+          )
 
-  let _ = case message {
-    Schedule -> {
-      logger.info(scheduler_logger, "Scheduling tasks")
-
-      use tasks <- result.try(task.active_for_page(state.conn, 1))
-
-      list.each(tasks, fn(task) {
-        logger.info(
-          scheduler_logger,
-          "Creating scheduler for task " <> int.to_string(task.id),
-        )
-
-        let assert Ok(cron) = clockwork.from_string(task.schedule)
-
-        Ok(Nil)
+        Nil
       })
-
-      Ok(Nil)
-    }
-  }
-
-  // // Schedule the next run in 5 minutes
-  // process.send_after(process.named_subject(state.self), 6000 * 5, Schedule)
-
-  actor.continue(state)
-}
-
-fn schedule_run(
-  task: task.Task,
-  conn: sqlite.Connection,
-  task_exec_sub: process.Subject(
-    lifeguard.PoolMsg(task_run_executor.ExecutorMessage),
-  ),
-) {
-  let assert Ok(new_task_run) =
-    task_run.new()
-    |> task_run.set_task_id(task.id)
-    |> task_run.create(conn)
-
-  let _ =
-    lifeguard.send(
-      task_exec_sub,
-      task_run_executor.ExecuteTask(new_task_run.id),
-      1000,
+        |> schedule.with_logging()
+        |> schedule.supervised(new_sub),
     )
-  // logger.info(
-  //   scheduler_logger,
-  //   "Task scheduled with run id " <> int.to_string(new_task_run.id),
-  // )
+  })
+  |> Ok
 }

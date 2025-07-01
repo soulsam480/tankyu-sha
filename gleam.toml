@@ -37,7 +37,7 @@ gleamy_lights = ">= 2.3.1 and < 3.0.0"
 wisp = ">= 1.8.0 and < 2.0.0"
 mist = ">= 5.0.0 and < 6.0.0"
 lifeguard = ">= 4.0.0 and < 5.0.0"
-gleam_httpc = ">= 4.1.1 and < 5.0.0"
+gleam_httpc = { git = "git@github.com:gleam-lang/httpc.git", ref="35bae95d50f28189aaa723d7e288072c9579f36d"  }
 clockwork = { git = "git@github.com:renatillas/clockwork.git", ref = "main" }
 gleam_time = ">= 1.2.0 and < 2.0.0"
 

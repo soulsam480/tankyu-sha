@@ -5,6 +5,7 @@ import gleam/list
 import gleam/option.{type Option}
 import gleam/result
 import lib/error
+import snag
 
 pub type Task {
   Task(
@@ -149,9 +150,19 @@ pub fn update(task: Task, conn: sqlite.Connection) {
   result.is_ok(res)
 }
 
-pub fn active_for_page(conn: sqlite.Connection, page: Int) {
-  let limit = 10
+pub fn active_batch(
+  conn: sqlite.Connection,
+  cb: fn(List(Task)) -> Result(a, snag.Snag),
+) -> Result(a, snag.Snag) {
+  do_active_batch_recursive(conn, cb, 1)
+}
 
+fn do_active_batch_recursive(
+  conn: sqlite.Connection,
+  cb: fn(List(Task)) -> Result(a, snag.Snag),
+  page: Int,
+) -> Result(a, snag.Snag) {
+  let limit = 10
   let offset = { page - 1 } * limit
 
   use items <- result.try(sqlite.query(
@@ -163,7 +174,15 @@ pub fn active_for_page(conn: sqlite.Connection, page: Int) {
     task_decoder(),
   ))
 
-  Ok(items)
+  case items {
+    [] -> cb([])
+
+    val -> {
+      use _ <- result.try(cb(val))
+
+      do_active_batch_recursive(conn, cb, page + 1)
+    }
+  }
 }
 
 pub fn destroy(task: Task, connection: sqlite.Connection) {

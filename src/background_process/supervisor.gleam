@@ -8,6 +8,7 @@ import ffi/sqlite
 import gleam/erlang/process
 import gleam/otp/static_supervisor
 import gleam/otp/supervision
+import gleam/result
 import lib/logger
 
 /// main entry of all background processes
@@ -21,16 +22,13 @@ pub fn start() {
 
   logger.info(sup_logger, "Connected to database")
 
-  let scheduler_name = scheduler.new_name()
   let task_run_ingestor_name = task_run_ingestor.new_name()
   let source_run_ingestor_name = source_run_ingestor.new_name()
   let source_run_executor_name = source_run_executor.new_name()
   let task_run_executor_name = task_run_executor.new_name()
   let cleaner_name = cleaner.new_name()
 
-  let assert Ok(_) =
-    // TODO:
-    // 3. keep playwright instance alive in background
+  let builder =
     static_supervisor.new(static_supervisor.OneForOne)
     |> static_supervisor.add(task_run_ingestor.new(task_run_ingestor_name, conn))
     |> static_supervisor.add(source_run_ingestor.new(
@@ -49,18 +47,16 @@ pub fn start() {
       source_run_ingestor_name,
     ))
     |> static_supervisor.add(
-      supervision.worker(fn() {
-        scheduler.new(scheduler_name, conn, task_run_executor_name)
-      }),
-    )
-    |> static_supervisor.add(
       supervision.worker(fn() { cleaner.new(cleaner_name, conn) }),
     )
+
+  let assert Ok(_) =
+    scheduler.schedule_tasks(builder, conn, task_run_executor_name)
+    |> result.unwrap(builder)
     |> static_supervisor.start()
 
   logger.info(sup_logger, "Started supervisor")
 
-  process.send(process.named_subject(scheduler_name), scheduler.Schedule)
   process.send(process.named_subject(cleaner_name), cleaner.CheckStaleRuns)
 
   process.sleep_forever()
