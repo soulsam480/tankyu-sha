@@ -1,6 +1,5 @@
 import app/router_context
-import birl
-import birl/duration
+import background_process/scheduler
 import gleam/http
 import gleam/list
 import gleam/result
@@ -13,7 +12,7 @@ import wisp
 
 /// router for /task_runs
 pub fn route(ctx: router_context.RouterContext) -> wisp.Response {
-  let router_context.RouterContext(req, segments, _conn) = ctx
+  let router_context.RouterContext(req, segments, _conn, _) = ctx
 
   case req.method, segments {
     http.Get, ["dash", ..] -> {
@@ -33,9 +32,12 @@ pub fn route(ctx: router_context.RouterContext) -> wisp.Response {
 // POST /task_runs/dash/queue
 fn queue_new(ctx: router_context.RouterContext) -> wisp.Response {
   let delivery_times = [
-    birl.utc_now() |> birl.add(duration.hours(1)) |> birl.to_iso8601(),
-    birl.utc_now() |> birl.add(duration.minutes(15)) |> birl.to_iso8601(),
-    birl.utc_now() |> birl.add(duration.minutes(20)) |> birl.to_iso8601(),
+    // Every minute
+    "* * * * *",
+    // Every 5 minutes
+    "*/5 * * * *",
+    // At the start of every hour (e.g., 00:00, 01:00, etc.)
+    "0 * * * *",
   ]
 
   let articles = [
@@ -49,18 +51,21 @@ fn queue_new(ctx: router_context.RouterContext) -> wisp.Response {
 
   list.zip(list.shuffle(delivery_times), list.shuffle(articles))
   |> list.each(fn(it) {
-    let #(_delivery_time, article) = it
+    let #(delivery_time, article) = it
 
     let assert Ok(ts) =
       task.new()
-      |> task.set_schedule("")
+      |> task.set_schedule(delivery_time)
       |> task.create(ctx.conn)
 
-    source.new()
-    |> source.set_task_id(ts.id)
-    |> source.set_kind(source.News)
-    |> source.set_url(article)
-    |> source.create(ctx.conn)
+    let _ =
+      source.new()
+      |> source.set_task_id(ts.id)
+      |> source.set_kind(source.News)
+      |> source.set_url(article)
+      |> source.create(ctx.conn)
+
+    scheduler.schedule_task(ts, ctx.conn, ctx.actor_registry.scheduler)
   })
 
   wisp.accepted()

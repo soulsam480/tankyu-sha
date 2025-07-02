@@ -6,7 +6,6 @@ import ffi/sqlite
 import gleam/erlang/process
 import gleam/int
 import gleam/result
-import lib/logger
 import mist
 import wisp
 import wisp/wisp_mist
@@ -14,11 +13,15 @@ import wisp/wisp_mist
 pub fn main() {
   use conn <- sqlite.with_connection(sqlite.db_path())
 
+  let sub = process.new_subject()
+
   // 1. start background processes
-  process.spawn_unlinked(supervisor.start)
+  process.spawn_unlinked(fn() { supervisor.start(sub) })
+
+  let actor_registry = process.receive_forever(sub)
 
   wisp.configure_logger()
-  wisp.set_logger_level(wisp.DebugLevel)
+  wisp.set_logger_level(wisp.InfoLevel)
 
   let secret_key_base = wisp.random_string(64)
 
@@ -33,6 +36,7 @@ pub fn main() {
           req:,
           conn:,
           segments: wisp.path_segments(req),
+          actor_registry:,
         ))
       },
       secret_key_base,
@@ -44,10 +48,6 @@ pub fn main() {
       |> result.unwrap(8080),
     )
     |> mist.start
-
-  let app_logger = logger.new("App")
-
-  logger.info(app_logger, "running at http://localhost:" <> port)
 
   // 2. start web server
   process.sleep_forever()

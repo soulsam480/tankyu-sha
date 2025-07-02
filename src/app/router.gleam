@@ -6,6 +6,11 @@ import wisp
 pub fn handle_request(context: router_context.RouterContext) -> wisp.Response {
   let req = context.req
 
+  use <- wisp.log_request(req)
+  use <- wisp.rescue_crashes
+  // Rewrite HEAD requests to GET requests and return an empty body.
+  use req <- wisp.handle_head(req)
+
   case wisp.path_segments(req) {
     [] -> home_page(req)
 
@@ -19,7 +24,5 @@ pub fn handle_request(context: router_context.RouterContext) -> wisp.Response {
 
 fn home_page(_req: wisp.Request) -> wisp.Response {
   wisp.response(200)
-  |> wisp.html_body(
-    string_tree.new() |> string_tree.append("<p>Welcome to Tankyu-Sha</p>"),
-  )
+  |> wisp.html_body(string_tree.from_string("<p>Welcome to Tankyu-Sha</p>"))
 }

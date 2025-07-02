@@ -183,8 +183,7 @@ pub fn ddg(
         "https://duckduckgo.com?q="
         <> uri.percent_encode(term)
         <> ddg_query_params(params)
-      }
-        |> echo,
+      },
       ["kind=Search", ddg_pages(params), "headed=1"],
     ),
   )

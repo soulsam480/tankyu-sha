@@ -127,27 +127,24 @@ pub fn find(id: Int, conn: sqlite.Connection) {
 }
 
 pub fn update(task: Task, conn: sqlite.Connection) {
-  let res =
-    sqlite.exec(
-      conn,
-      "UPDATE tasks 
+  sqlite.exec(
+    conn,
+    "UPDATE tasks 
        SET topic = ?, 
            active = ?, 
            schedule = ?, 
            delivery_route = ?,
            last_run_at = ?
        WHERE id = ?",
-      [
-        task.topic |> sqlite.bind,
-        task.active |> sqlite.bool,
-        task.schedule |> sqlite.bind,
-        task.delivery_route |> sqlite.bind,
-        task.last_run_at |> sqlite.option,
-        task.id |> sqlite.bind,
-      ],
-    )
-
-  result.is_ok(res)
+    [
+      task.topic |> sqlite.bind,
+      task.active |> sqlite.bool,
+      task.schedule |> sqlite.bind,
+      task.delivery_route |> sqlite.bind,
+      task.last_run_at |> sqlite.option,
+      task.id |> sqlite.bind,
+    ],
+  )
 }
 
 pub fn active_batch(
