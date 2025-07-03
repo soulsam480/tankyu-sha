@@ -1,31 +1,52 @@
+import ffi/sqlite
 import gleam/dict
+import gleam/int
+import gleam/list
+import gleam/option
 import gleam/result
 import lib/error
+import lib/logger
 import models/source
 import services/internet_search
 
-pub fn run(source: source.Source) {
+pub fn run(source: source.Source, conn: sqlite.Connection) {
+  let browser_logger = logger.new("SearchRunner")
+
   use search_descr <- result.try(
     dict.get(source.meta, "search_str") |> error.map_to_snag(""),
   )
 
   use results <- result.try(
     internet_search.ddg(search_descr, [
+      // TODO: we can let the customise this per task
       internet_search.Pages("1"),
       internet_search.Range("d"),
     ]),
   )
 
-  echo results
+  logger.info(
+    browser_logger,
+    "Creating sources from "
+      <> int.to_string(list.length(results))
+      <> " results",
+  )
+
+  list.filter(results, fn(res) { option.is_some(res.link) })
+  |> list.each(fn(res) {
+    source.new()
+    |> source.set_url(option.unwrap(res.link, ""))
+    |> source.set_task_id(option.unwrap(source.task_id, -1))
+    |> source.set_kind(source.SearchResult)
+    |> source.set_meta(
+      dict.from_list([
+        #("title", res.title),
+        #("description", res.description),
+        #("published_at", res.published_at |> option.unwrap("")),
+        #("publisher", res.publisher |> option.unwrap("")),
+      ]),
+    )
+    |> source.create(conn)
+  })
 
   Ok("")
-}
-
-pub fn main() {
-  run(
-    source.new()
-    |> source.set_meta(
-      dict.from_list([#("search_str", "default linkedin profile")]),
-    ),
-  )
 }

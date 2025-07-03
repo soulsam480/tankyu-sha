@@ -6,12 +6,8 @@
   "scripts": {
     "start:runner": "node --experimental-strip-types priv/server.ts",
     "dev": "vite --port 3000",
-    "start": "vite --port 3000",
     "build": "vite build && tsc",
-    "serve": "vite preview",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check"
+    "serve": "vite preview"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -19,10 +15,9 @@
     "@types/turndown": "^5.0.5",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "vite": "^6.3.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.19",

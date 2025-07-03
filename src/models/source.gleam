@@ -12,6 +12,7 @@ pub type SourceKind {
   Search
   Feed
   News
+  SearchResult
 }
 
 pub type Source {
@@ -63,6 +64,7 @@ fn kind_decoder(kind: String) {
     "Search" -> Search
     "Feed" -> Feed
     "News" -> News
+    "SearchResult" -> SearchResult
     _ -> News
   }
 }
@@ -72,6 +74,7 @@ fn kind_encoder(kind: SourceKind) {
     Search -> "Search"
     Feed -> "Feed"
     News -> "News"
+    SearchResult -> "SearchResult"
   }
 }
 
@@ -197,7 +200,7 @@ pub fn of_task(task_id: Int, conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
     "SELECT id, url, kind, meta, task_id, created_at, updated_at 
      FROM sources 
-     WHERE task_id = ?;",
+     WHERE task_id = ? AND kind != 'SearchResult';",
     conn,
     [task_id |> sqlite.bind],
     source_decoder(),

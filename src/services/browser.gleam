@@ -7,9 +7,11 @@ import gleam/httpc
 import gleam/json
 import gleam/list
 import gleam/result
+import gleam/string
 import gleam/string_tree
 import gleam/uri
 import lib/error
+import lib/logger
 import shellout
 import snag
 
@@ -35,13 +37,14 @@ pub fn load(
 }
 
 fn do_load(url: String, opts: List(String)) {
-  start_service()
+  let browser_logger = logger.new("Browser")
+
+  start_service(browser_logger)
 
   let params =
     list.fold(
       opts,
-      string_tree.new()
-        |> string_tree.append("url=" <> uri.percent_encode(url)),
+      string_tree.from_string("url=" <> uri.percent_encode(url)),
       fn(acc, curr) { acc |> string_tree.append("&" <> curr) },
     )
     |> string_tree.to_string
@@ -102,6 +105,10 @@ pub fn is_service_running() {
 }
 
 pub fn kill_service() {
+  let browser_logger = logger.new("Browser")
+
+  logger.info(browser_logger, "Killing browser service")
+
   use req <- result.try(
     make_servive_req("/api/close")
     |> error.map_to_snag("Unable to make request"),
@@ -111,12 +118,20 @@ pub fn kill_service() {
     httpc.send(req) |> error.map_to_snag("unable to send request"),
   )
 
-  Ok(resp.status == 202)
+  case resp.status == 202 {
+    True -> {
+      logger.info(browser_logger, "Browser service killed")
+      Ok(True)
+    }
+    _ -> Ok(False)
+  }
 }
 
-fn start_service() {
+fn start_service(browser_logger: logger.Logger) {
   case is_service_running() {
     Ok(False) -> {
+      logger.info(browser_logger, "Starting browser service")
+
       let sub = process.new_subject()
 
       let sel =
@@ -129,14 +144,20 @@ fn start_service() {
           process.send(sub, res)
         })
 
-      let _ =
+      let resp =
         sel
         |> process.selector_receive(4000)
+
+      logger.info(
+        browser_logger,
+        "Browser service started" <> string.inspect(resp),
+      )
 
       Nil
     }
 
     _ -> {
+      logger.info(browser_logger, "Browser service already running")
       Nil
     }
   }

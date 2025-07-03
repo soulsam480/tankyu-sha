@@ -1,4 +1,5 @@
 import app/controllers/task_runs
+import app/controllers/tasks
 import app/router_context
 import gleam/string_tree
 import wisp
@@ -16,6 +17,10 @@ pub fn handle_request(context: router_context.RouterContext) -> wisp.Response {
 
     ["task_runs", ..rest] -> {
       task_runs.route(router_context.RouterContext(..context, segments: rest))
+    }
+
+    ["tasks", ..rest] -> {
+      tasks.route(router_context.RouterContext(..context, segments: rest))
     }
 
     _ -> wisp.not_found()

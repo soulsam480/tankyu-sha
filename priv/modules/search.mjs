@@ -17,23 +17,23 @@ export class Search extends Source {
   async init() {
     await this.createDefaultPage()
 
-    await this.page.setExtraHTTPHeaders({
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'en-US,en;q=0.9',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      Pragma: 'no-cache',
-      'Sec-Ch-Ua': '"Google Chrome";v="123", "Not:A-Brand";v="8"',
-      'Sec-Ch-Ua-Mobile': '?0',
-      'Sec-Ch-Ua-Platform': '"Windows"',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1'
-    })
+    // await this.page.setExtraHTTPHeaders({
+    //   Accept:
+    //     'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    //   'Accept-Encoding': 'gzip, deflate, br',
+    //   'Accept-Language': 'en-US,en;q=0.9',
+    //   'Cache-Control': 'no-cache',
+    //   Connection: 'keep-alive',
+    //   Pragma: 'no-cache',
+    //   'Sec-Ch-Ua': '"Google Chrome";v="123", "Not:A-Brand";v="8"',
+    //   'Sec-Ch-Ua-Mobile': '?0',
+    //   'Sec-Ch-Ua-Platform': '"Windows"',
+    //   'Sec-Fetch-Dest': 'document',
+    //   'Sec-Fetch-Mode': 'navigate',
+    //   'Sec-Fetch-Site': 'none',
+    //   'Sec-Fetch-User': '?1',
+    //   'Upgrade-Insecure-Requests': '1'
+    // })
   }
 
   /** @param {string} url */
@@ -43,8 +43,6 @@ export class Search extends Source {
     await this.humanMouseMovement()
 
     const { term = '', pages: _pages = '1' } = this.params
-
-    console.log(this.params)
 
     const pages = Number(_pages)
 

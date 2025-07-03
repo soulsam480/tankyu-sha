@@ -29,8 +29,9 @@ in a while. will fix that
 - [x] flatten all actor messages to separate actors <- rn all of them are
       blocked even though we can move ahead
 - [x] actor pool for all actors
-- [ ] keep playwright instance alive and every request is a new conetxt + tab or
+- [x] keep playwright instance alive and every request is a new conetxt + tab or
       reuse same context
+- [ ] Kill playwright service after cooldown period
 - [ ] finish search source
 - [ ] expose all config options via UI
   - summarry model, embedding model, or maybe a model per run

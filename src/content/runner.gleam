@@ -30,6 +30,8 @@ pub fn run(run: source_run.SourceRun, conn: sqlite.Connection) {
     source.Feed -> feed_source.run(soc)
     source.News -> news_source.run(soc)
     source.Search -> search_source.run(soc)
+    // TODO:
+    source.SearchResult -> Ok("")
   }
 
   case run_content {
