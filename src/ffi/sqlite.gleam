@@ -1,6 +1,7 @@
 import envoy
 import gleam/dynamic
 import gleam/dynamic/decode
+import gleam/erlang/application
 import gleam/json
 import gleam/list
 import gleam/option.{type Option}
@@ -128,7 +129,10 @@ pub fn decode_bool() -> decode.Decoder(Bool) {
 
 pub fn db_path() {
   let env = envoy.get("APP_ENV") |> result.unwrap("development")
-  env <> ".sqlite3"
+
+  let assert Ok(priv_dir) = application.priv_directory("tankyu_sha")
+
+  priv_dir <> "/" <> env <> ".sqlite3"
 }
 
 pub fn get_inserted_id(res: ExecResult) {

@@ -13,12 +13,12 @@ import './styles.css'
 const router = createRouter({
   routeTree,
   context: {
-    ...TanStackQueryProvider.getContext(),
+    ...TanStackQueryProvider.getContext()
   },
   defaultPreload: 'intent',
   scrollRestoration: true,
   defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0,
+  defaultPreloadStaleTime: 0
 })
 
 // Register the router instance for type safety
@@ -32,12 +32,12 @@ declare module '@tanstack/react-router' {
 const rootElement = document.getElementById('app')
 if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
+
   root.render(
     <StrictMode>
       <TanStackQueryProvider.Provider>
         <RouterProvider router={router} />
       </TanStackQueryProvider.Provider>
-    </StrictMode>,
+    </StrictMode>
   )
 }
-

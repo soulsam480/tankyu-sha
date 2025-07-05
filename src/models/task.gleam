@@ -1,6 +1,7 @@
 import birl
 import ffi/sqlite
 import gleam/dynamic/decode
+import gleam/json
 import gleam/list
 import gleam/option.{type Option}
 import gleam/result
@@ -215,4 +216,16 @@ pub fn all(connection: sqlite.Connection) {
   ))
 
   Ok(items)
+}
+
+pub fn to_json(t: Task) -> json.Json {
+  json.object([
+    #("id", json.int(t.id)),
+    #("topic", json.string(t.topic)),
+    #("active", json.bool(t.active)),
+    #("schedule", json.string(t.schedule)),
+    #("delivery_route", json.string(t.delivery_route)),
+    #("created_at", json.string(t.created_at)),
+    #("updated_at", json.string(t.updated_at)),
+  ])
 }

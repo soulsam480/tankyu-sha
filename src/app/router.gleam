@@ -15,11 +15,11 @@ pub fn handle_request(context: router_context.RouterContext) -> wisp.Response {
   case wisp.path_segments(req) {
     [] -> home_page(req)
 
-    ["task_runs", ..rest] -> {
+    ["api", "task_runs", ..rest] -> {
       task_runs.route(router_context.RouterContext(..context, segments: rest))
     }
 
-    ["tasks", ..rest] -> {
+    ["api", "tasks", ..rest] -> {
       tasks.route(router_context.RouterContext(..context, segments: rest))
     }
 

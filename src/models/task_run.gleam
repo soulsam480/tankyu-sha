@@ -2,6 +2,7 @@ import birl
 import ffi/sqlite
 import gleam/dynamic/decode
 import gleam/int
+import gleam/json
 import gleam/list
 import gleam/result
 import lib/error
@@ -214,4 +215,15 @@ pub fn pending_in_last_30_minutes(conn: sqlite.Connection) {
   ))
 
   Ok(items)
+}
+
+pub fn to_json(t: TaskRun) -> json.Json {
+  json.object([
+    #("id", json.int(t.id)),
+    #("task_id", json.int(t.task_id)),
+    #("status", json.string(t.status |> task_status_encoder)),
+    #("content", json.string(t.content)),
+    #("created_at", json.string(t.created_at)),
+    #("updated_at", json.string(t.updated_at)),
+  ])
 }

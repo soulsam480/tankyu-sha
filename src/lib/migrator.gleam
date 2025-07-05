@@ -248,7 +248,7 @@ pub fn run(op: MigrationOp) {
     |> error.map_to_snag("Unable to query"),
   )
 
-  io.println("Running on " <> { string.inspect(res.rows) })
+  io.println("Running on [sqlite, sqlite_vec]" <> { string.inspect(res.rows) })
 
   use _ <- result.try(create_schema_table(conn))
 
