@@ -7,7 +7,7 @@ import { Search } from './modules/search.mjs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { News } from './modules/news.mjs'
-import type { ChromiumBrowser } from 'playwright'
+import type { BrowserContext, ChromiumBrowser } from 'playwright'
 
 dotenv.config()
 
@@ -18,6 +18,7 @@ const STORAGE_STATE_PATH = path.join(process.cwd(), 'storage_state.json')
 const SERVICE_TO_CTOR = { LinkedIn: Linkedin, News: News, Search: Search }
 
 let browser: ChromiumBrowser | null = null
+let context: BrowserContext | null = null
 
 const app = fastify({ logger: true })
 
@@ -29,7 +30,9 @@ app.get('/api/close', (_, reply) => {
   reply.status(202).send({ ok: true })
 
   setTimeout(() => {
+    context?.close()
     browser?.close()
+
     process.exit(0)
   }, 100)
 })
@@ -45,7 +48,7 @@ interface QueryParams {
 app.get<{
   Querystring: QueryParams
 }>('/api/process', async (req, reply) => {
-  const { use_system = null, headed = null, url, kind, ...params } = req.query
+  const { use_system = null, headed = false, url, kind, ...params } = req.query
 
   let close
 
@@ -64,18 +67,25 @@ app.get<{
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-site-isolation-trials',
-        '--disable-web-security'
+        '--disable-web-security',
+        '--disable-extensions',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-plugins',
+        '--no-sandbox',
+        '--memory-pressure-off'
       ]
     })
-
-    let context
 
     try {
       const storageState = await fs.readFile(STORAGE_STATE_PATH, 'utf-8')
 
       context = await browser.newContext({
         bypassCSP: true,
-
         storageState: JSON.parse(storageState)
       })
     } catch (_) {
@@ -111,15 +121,15 @@ app.get<{
 
     close = async () => {
       try {
-        const storageState = await context.storageState()
+        const storageState = await context?.storageState()
 
-        await fs.writeFile(
-          STORAGE_STATE_PATH,
-          JSON.stringify(storageState, null, 2)
-        )
+        if (storageState) {
+          await fs.writeFile(
+            STORAGE_STATE_PATH,
+            JSON.stringify(storageState, null, 2)
+          )
+        }
       } catch (_) {}
-
-      await context?.close()
     }
 
     if (!kind) {

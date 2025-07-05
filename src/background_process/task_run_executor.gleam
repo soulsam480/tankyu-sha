@@ -122,6 +122,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
               source_run.new()
               |> source_run.set_task_run_id(task_run.id)
               |> source_run.set_source_id(source.id)
+              |> source_run.set_status(source_run.Queued)
               |> source_run.create(state.conn)
               |> logger.trap_notice(exec_logger),
             )

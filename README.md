@@ -32,7 +32,7 @@ in a while. will fix that
 - [x] keep playwright instance alive and every request is a new conetxt + tab or
       reuse same context
 - [ ] Kill playwright service after cooldown period
-- [ ] finish search source
+- [x] finish search source
 - [ ] expose all config options via UI
   - summarry model, embedding model, or maybe a model per run
   - chromium location <- useful when running outside docker

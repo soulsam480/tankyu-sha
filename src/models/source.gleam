@@ -183,13 +183,14 @@ pub fn update(source: Source, conn: sqlite.Connection) {
   result.is_ok(res)
 }
 
-pub fn of_kind(kind: SourceKind, conn: sqlite.Connection) {
+pub fn search_result_of_task(task_id: Int, conn: sqlite.Connection) {
   use items <- result.try(sqlite.query(
     "SELECT id, url, kind, meta, task_id, created_at, updated_at 
      FROM sources 
-     WHERE kind = ?;",
+       WHERE kind = ? AND task_id = ?
+       AND NOT EXISTS (SELECT 1 FROM source_runs WHERE source_runs.source_id = sources.id);",
     conn,
-    [kind |> kind_encoder |> sqlite.bind],
+    [SearchResult |> kind_encoder |> sqlite.bind, task_id |> sqlite.bind],
     source_decoder(),
   ))
 

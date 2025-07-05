@@ -55,7 +55,8 @@ pub fn new(
     |> Ok
   })
   |> lifeguard.on_message(handle_message)
-  |> lifeguard.size(10)
+  // WARN: this is super taxing on the machine, dial up when more ram
+  |> lifeguard.size(2)
   |> lifeguard.supervised(1000)
 }
 
@@ -180,7 +181,7 @@ fn handle_message(state: State, message: IngestorMessage) {
                 |> logger.trap_notice(ingest_logger),
               )
 
-              case utils.list_is_empty(runs) {
+              let _ = case utils.list_is_empty(runs) {
                 True -> {
                   let _ =
                     lifeguard.send(
@@ -193,12 +194,43 @@ fn handle_message(state: State, message: IngestorMessage) {
                     ingest_logger,
                     "All source runs completed. Scheduled parent task for ingestion.",
                   )
+
+                  Ok(Nil)
                 }
                 False -> {
-                  logger.info(
-                    ingest_logger,
-                    "Some source runs are still pending.",
+                  use first_run <- result.try(
+                    list.first(runs) |> error.map_to_snag("empty"),
                   )
+
+                  case list.length(runs), first_run.status {
+                    1, source_run.ChildrenRunning -> {
+                      let _ =
+                        source_run.set_status(first_run, source_run.Success)
+                        |> source_run.update(conn)
+                        |> logger.trap_notice(ingest_logger)
+
+                      let _ =
+                        lifeguard.send(
+                          process.named_subject(task_run_ingestor_name),
+                          task_run_ingestor.TaskRun(run_id),
+                          1000,
+                        )
+                        |> logger.trap_notice(ingest_logger)
+
+                      logger.info(
+                        ingest_logger,
+                        "All source runs completed. Scheduled parent task for ingestion.",
+                      )
+                    }
+                    _, _ -> {
+                      logger.info(
+                        ingest_logger,
+                        "Some source runs are still pending.",
+                      )
+                    }
+                  }
+
+                  Ok(Nil)
                 }
               }
 

@@ -184,7 +184,7 @@ pub fn ddg(
         <> uri.percent_encode(term)
         <> ddg_query_params(params)
       },
-      ["kind=Search", ddg_pages(params), "headed=1"],
+      ["kind=Search", ddg_pages(params)],
     ),
   )
 

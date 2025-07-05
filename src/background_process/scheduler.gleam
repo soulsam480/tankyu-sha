@@ -14,6 +14,7 @@ import lib/logger
 import lifeguard
 import models/task
 import models/task_run
+import snag
 
 pub type SchedulerMessage {
   Schedule
@@ -66,8 +67,8 @@ fn handle_message(state: State, message: SchedulerMessage) {
 
       // NOTE: here we only look at tasks whose next occurance is not read already
       list.each(tasks, fn(task) {
-        case result.is_ok(schedule_task(task, state.conn, state.self)) {
-          True -> {
+        case schedule_task(task, state.conn, state.self) {
+          Ok(_) -> {
             logger.info(
               scheduler_logger,
               "Scheduled task with id " <> int.to_string(task.id),
@@ -128,26 +129,25 @@ pub fn schedule_task(
     |> timestamp.to_unix_seconds
     |> float.round
 
-  // 1. to schedule
-  let after_ms =
-    int.subtract(
-      next
-        |> int.multiply(1000),
-      timestamp.system_time()
-        |> timestamp.to_unix_seconds
-        |> float.round
-        |> int.multiply(1000),
-    )
-
-  // 2. to store
   let next_str = next |> int.to_string
 
   case option.unwrap(task.last_run_at, "") == next_str {
     True -> {
-      Ok(Nil)
+      snag.error("Already scheduled")
     }
 
     False -> {
+      let after_ms =
+        int.subtract(
+          next
+            |> int.multiply(1000),
+          timestamp.system_time()
+            |> timestamp.to_unix_seconds
+            |> float.round
+            |> int.multiply(1000),
+        )
+        |> int.max(0)
+
       process.send_after(
         process.named_subject(scheduler_name),
         after_ms,

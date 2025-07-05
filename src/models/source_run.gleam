@@ -9,6 +9,7 @@ import lib/error
 pub type SourceRunStatus {
   Queued
   Running
+  ChildrenRunning
   Failure
   Success
   Embedding
@@ -76,6 +77,7 @@ fn source_run_status_decoder(status: String) {
     "failure" -> Failure
     "success" -> Success
     "embedding" -> Embedding
+    "children_running" -> ChildrenRunning
     _ -> Queued
   }
 }
@@ -83,6 +85,7 @@ fn source_run_status_decoder(status: String) {
 fn source_run_status_encoder(task_status: SourceRunStatus) -> String {
   case task_status {
     Queued -> "queued"
+    ChildrenRunning -> "children_running"
     Running -> "running"
     Failure -> "failure"
     Success -> "success"

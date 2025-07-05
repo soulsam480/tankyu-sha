@@ -140,7 +140,12 @@ fn start_service(browser_logger: logger.Logger) {
 
       let _ =
         process.spawn_unlinked(fn() {
-          let res = shellout.command("npm", ["run", "start:runner"], ".", [])
+          let res =
+            shellout.command("npm", ["run", "start:runner"], ".", [
+              shellout.LetBeStdout,
+              shellout.LetBeStderr,
+            ])
+
           process.send(sub, res)
         })
 

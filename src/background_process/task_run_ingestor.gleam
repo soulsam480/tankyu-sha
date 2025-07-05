@@ -39,7 +39,8 @@ pub fn new(
     |> Ok
   })
   |> lifeguard.on_message(handle_message)
-  |> lifeguard.size(10)
+  // WARN: this is super taxing on the machine, dial up when more ram
+  |> lifeguard.size(2)
   |> lifeguard.supervised(1000)
 }
 

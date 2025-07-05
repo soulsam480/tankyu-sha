@@ -1,5 +1,6 @@
 import app/router_context
 import background_process/scheduler
+import gleam/dict
 import gleam/http
 import gleam/list
 import gleam/result
@@ -32,21 +33,19 @@ pub fn route(ctx: router_context.RouterContext) -> wisp.Response {
 // POST /task_runs/dash/queue
 fn queue_new(ctx: router_context.RouterContext) -> wisp.Response {
   let delivery_times = [
-    // Every minute
-    "* * * * *",
     // Every 5 minutes
-    "*/5 * * * *",
-    // At the start of every hour (e.g., 00:00, 01:00, etc.)
-    "0 * * * *",
+    "*/5 * * * *", "*/10 * * * *", "*/5 * * * *", "*/10 * * * *",
   ]
 
   let articles = [
-    "https://lite.cnn.com/2025/06/21/weather/heat-dome-climate",
-    "https://lite.cnn.com/2025/06/21/politics/iran-b-2-bombers-trump",
-    "https://lite.cnn.com/2025/06/20/us/mahmoud-khalil-ordered-released-by-judge",
-    "https://lite.cnn.com/us/ice-immigration-officers-face-masks",
-    "https://lite.cnn.com/2025/06/21/middleeast/americans-israel-desperate-get-out-intl-latam",
-    "https://lite.cnn.com/2025/06/21/sport/jacob-misiorowski-125-year-old-record-spt",
+    "india AI news", "revenuehero linkedin feed", "sambit sahoo github noter",
+    "ramayana movie",
+    // "https://lite.cnn.com/2025/06/21/weather/heat-dome-climate",
+  // "https://lite.cnn.com/2025/06/21/politics/iran-b-2-bombers-trump",
+  // "https://lite.cnn.com/2025/06/20/us/mahmoud-khalil-ordered-released-by-judge",
+  // "https://lite.cnn.com/us/ice-immigration-officers-face-masks",
+  // "https://lite.cnn.com/2025/06/21/middleeast/americans-israel-desperate-get-out-intl-latam",
+  // "https://lite.cnn.com/2025/06/21/sport/jacob-misiorowski-125-year-old-record-spt",
   ]
 
   list.zip(list.shuffle(delivery_times), list.shuffle(articles))
@@ -61,8 +60,8 @@ fn queue_new(ctx: router_context.RouterContext) -> wisp.Response {
     let _ =
       source.new()
       |> source.set_task_id(ts.id)
-      |> source.set_kind(source.News)
-      |> source.set_url(article)
+      |> source.set_kind(source.Search)
+      |> source.set_meta(dict.from_list([#("search_str", article)]))
       |> source.create(ctx.conn)
 
     scheduler.schedule_task(ts, ctx.conn, ctx.actor_registry.scheduler)

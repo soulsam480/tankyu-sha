@@ -1,37 +1,30 @@
 import birl
 import gleam/dict
-import gleam/io
 import gleam/string
 import gleam/string_tree
-import gleamy_lights/premixed
 import justin
+import logging
 import youid/uuid
-
-pub type LogLevel {
-  Info
-  Warn
-  Notice
-}
-
-fn log_level_to_json(log_level: LogLevel) -> String {
-  case log_level {
-    Info -> "INFO" |> premixed.bg_blue |> premixed.text_white
-    Warn -> "WARN" |> premixed.bg_yellow |> premixed.text_black
-    Notice -> "NOTICE" |> premixed.bg_red |> premixed.text_white
-  }
-}
 
 pub type Logger {
   Logger(
     group: String,
     cid: String,
-    level: LogLevel,
+    level: logging.LogLevel,
     scope: dict.Dict(String, String),
   )
 }
 
 pub fn new(group: String) {
-  Logger(group: group, cid: uuid.v4_string(), level: Info, scope: dict.new())
+  // NOTE: this is called here because the erlang logger is configured per process
+  logging.configure()
+
+  Logger(
+    group: group,
+    cid: uuid.v4_string(),
+    level: logging.Info,
+    scope: dict.new(),
+  )
 }
 
 pub fn with_scope(logger: Logger, scope: dict.Dict(String, String)) {
@@ -39,13 +32,13 @@ pub fn with_scope(logger: Logger, scope: dict.Dict(String, String)) {
 }
 
 pub fn info(logger: Logger, message: String) {
-  Logger(..logger, level: Info) |> write(message)
+  Logger(..logger, level: logging.Info) |> write(message)
 }
 
 pub fn trap_info(res: Result(a, b), logger: Logger) {
   case res {
     Error(e) -> {
-      Logger(..logger, level: Info) |> write(e |> string.inspect)
+      Logger(..logger, level: logging.Info) |> write(e |> string.inspect)
       res
     }
     _ -> {
@@ -55,17 +48,17 @@ pub fn trap_info(res: Result(a, b), logger: Logger) {
 }
 
 pub fn warn(logger: Logger, message: String) {
-  Logger(..logger, level: Warn) |> write(message)
+  Logger(..logger, level: logging.Warning) |> write(message)
 }
 
 pub fn notice(logger: Logger, message: String) {
-  Logger(..logger, level: Notice) |> write(message)
+  Logger(..logger, level: logging.Error) |> write(message)
 }
 
 pub fn trap_warn(res: Result(a, b), logger: Logger) {
   case res {
     Error(e) -> {
-      Logger(..logger, level: Warn) |> write(e |> string.inspect)
+      Logger(..logger, level: logging.Warning) |> write(e |> string.inspect)
       res
     }
     _ -> {
@@ -77,7 +70,7 @@ pub fn trap_warn(res: Result(a, b), logger: Logger) {
 pub fn trap_notice(res: Result(a, b), logger: Logger) {
   case res {
     Error(e) -> {
-      Logger(..logger, level: Notice) |> write(e |> string.inspect)
+      Logger(..logger, level: logging.Notice) |> write(e |> string.inspect)
       res
     }
     _ -> {
@@ -91,7 +84,6 @@ fn write(logger: Logger, message: String) {
     string_tree.new()
     |> string_tree.append(birl.utc_now() |> birl.to_naive_time_string() <> " ")
     |> string_tree.append(logger.cid <> " ")
-    |> string_tree.append(log_level_to_json(logger.level) <> " ")
     |> string_tree.append(justin.pascal_case(logger.group) <> " ")
 
   dict.fold(logger.scope, out, fn(acc, key, value) {
@@ -99,5 +91,5 @@ fn write(logger: Logger, message: String) {
   })
   |> string_tree.append(message)
   |> string_tree.to_string
-  |> io.println
+  |> logging.log(logger.level, _)
 }

@@ -21,7 +21,9 @@ pub fn run(source: source.Source, conn: sqlite.Connection) {
       // TODO: we can let the customise this per task
       internet_search.Pages("1"),
       internet_search.Range("d"),
-    ]),
+    ])
+    // NOTE: take first 5 for now as search is super taxing on compute
+    |> result.map(list.take(_, 5)),
   )
 
   logger.info(
