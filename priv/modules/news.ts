@@ -1,23 +1,28 @@
-import { Source } from './source.mjs'
+import { Source } from './source.ts'
 import TurnDown from 'turndown'
 
-/**
- * @see https://github.com/n4ze3m/page-assist/blob/main/src/loader/html.ts#L20
- * this piece has been taken from page-assist
- */
+interface Article {
+  content?: string
+  title?: string
+  published?: string
+  domain?: string
+  author?: string
+}
+
+interface Defuddle {
+  parse(): Article
+}
+
 export class News extends Source {
-  get type() {
+  get type(): string {
     return 'news'
   }
 
-  get requiresLogin() {
+  get requiresLogin(): boolean {
     return false
   }
 
-  /**
-   * @param {string} url process provided url
-   */
-  async process(url) {
+  async process(url: string): Promise<string> {
     await this.page.goto(url, { waitUntil: 'domcontentloaded' })
 
     await this.page.addScriptTag({
@@ -26,7 +31,7 @@ export class News extends Source {
 
     const result = await this.page.evaluate(() => {
       // @ts-expect-error ignore this available in runtime
-      const reader = new Defuddle(document)
+      const reader: Defuddle = new Defuddle(document)
       const article = reader.parse()
 
       let sanitizedContent = ''
@@ -48,7 +53,7 @@ export class News extends Source {
 
       const createdAt = article?.published?.split(',')?.[0]?.trim() ?? null
 
-      function safeParseDate() {
+      function safeParseDate(): string | null {
         if (!createdAt) return null
 
         try {

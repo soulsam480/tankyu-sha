@@ -1,29 +1,33 @@
-import { Source } from './source.mjs'
+import { Source } from './source.ts'
 // @ts-ignore ignore
 import { harvestPage } from 'js-harvester/playwright.js'
-import { LinkedInUrlInfo } from './linkedin-url-info.mjs'
-import { RunnerError } from '../lib/error.mjs'
+import { LinkedInUrlInfo } from './linkedin-url-info.ts'
+import { RunnerError } from '../lib/error.ts'
+import type { Page, Locator } from 'playwright'
 
-/**
- * @typedef {Object} Post
- * @property {string} content - post content
- * @property {number} [id] - post id
- */
+interface Post {
+  content: string
+  id?: number
+  unique_id: string
+  actor: Record<string, string>
+  time_ago: string
+  images: string[]
+}
 
 export class Linkedin extends Source {
-  get requiresLogin() {
+  get requiresLogin(): boolean {
     return false
   }
 
-  get type() {
+  get type(): string {
     return 'linked_in'
   }
 
-  get loginUrl() {
+  get loginUrl(): string {
     return 'https://www.linkedin.com/uas/login'
   }
 
-  async login() {
+  async login(): Promise<void> {
     await this.page.goto(this.loginUrl, {
       waitUntil: 'load'
     })
@@ -55,10 +59,7 @@ export class Linkedin extends Source {
     await this.page.waitForSelector('.global-nav__content')
   }
 
-  /**
-   * @param {string} url process provided url
-   */
-  async process(url) {
+  async process(url: string): Promise<string> {
     const urlInfo = new LinkedInUrlInfo(url)
 
     if (urlInfo.isUnknown) {
@@ -75,8 +76,7 @@ export class Linkedin extends Source {
     return this.#processFeed(urlInfo)
   }
 
-  /** @param {LinkedInUrlInfo} urlInfo */
-  async #processPost(urlInfo) {
+  async #processPost(urlInfo: LinkedInUrlInfo): Promise<string> {
     await this.page.goto(urlInfo.originalUrl, {
       waitUntil: 'domcontentloaded'
     })
@@ -93,10 +93,9 @@ export class Linkedin extends Source {
 
     await this.page.waitForSelector('[role="article"]')
 
-    const posts = []
+    const posts: Post[] = []
 
-    /** @type {Post|null} */
-    const post = await this.#fetchPost(
+    let post: Post | null = await this.#fetchPost(
       this.page.locator('[role="article"]').first()
     )
 
@@ -113,8 +112,7 @@ export class Linkedin extends Source {
     })
   }
 
-  /** @param {LinkedInUrlInfo} urlInfo */
-  async #processFeed(urlInfo) {
+  async #processFeed(urlInfo: LinkedInUrlInfo): Promise<string> {
     if (!urlInfo.feedUrl) {
       throw new RunnerError({
         type: 'INVALID_FEED_URL',
@@ -126,7 +124,7 @@ export class Linkedin extends Source {
 
     await this.#loginCheck()
 
-    const promises = []
+    const promises: Promise<any>[] = []
 
     if (urlInfo.isCompany) {
       promises.push(this.#getCompanyAboutInfo(urlInfo))
@@ -146,11 +144,10 @@ export class Linkedin extends Source {
     })
   }
 
-  /**
-   * @param {LinkedInUrlInfo} urlInfo
-   * @param {import("playwright").Page |null} page
-   * */
-  async #getPosts(urlInfo, page = null) {
+  async #getPosts(
+    urlInfo: LinkedInUrlInfo,
+    page: Page | null = null
+  ): Promise<Post[]> {
     page ??= await this.newPage()
 
     if (!urlInfo.feedUrl) {
@@ -166,16 +163,16 @@ export class Linkedin extends Source {
 
     await page.waitForSelector('[role="article"]')
 
-    const rows = await page.locator('[role="article"]').all()
+    const rows: Locator[] = await page.locator('[role="article"]').all()
 
     await page.addScriptTag({
       url: 'https://unpkg.com/js-harvester@0.3.14/src/harvester.js'
     })
 
-    const posts = []
+    const posts: Post[] = []
 
     for (let index = 0; index < 10; index++) {
-      const el = rows[index]
+      const el: Locator | undefined = rows[index]
 
       if (!el) {
         continue
@@ -198,10 +195,7 @@ export class Linkedin extends Source {
     return posts
   }
 
-  /**
-   * @param {LinkedInUrlInfo} urlInfo
-   */
-  async #getCompanyAboutInfo(urlInfo) {
+  async #getCompanyAboutInfo(urlInfo: LinkedInUrlInfo): Promise<any> {
     if (!urlInfo.companyAboutUrl) {
       throw new RunnerError({
         type: 'INVALID_COMPANY_ABOUT_URL',
@@ -219,7 +213,9 @@ export class Linkedin extends Source {
       }),
       this.page.waitForSelector(
         "section[class*='org-page-details-module__card-spacing'] dl dt",
-        { timeout: 7000 }
+        {
+          timeout: 7000
+        }
       )
     ])
 
@@ -265,7 +261,7 @@ section[class*="org-page-details"]
     return { ...companyNameData, ...detailsData }
   }
 
-  async #loginCheck() {
+  async #loginCheck(): Promise<boolean> {
     const loc = this.page.getByRole('button', { name: /sign in/i }).first()
 
     if (await loc.isVisible()) {
@@ -277,8 +273,7 @@ section[class*="org-page-details"]
     return true
   }
 
-  /** @param {import("playwright").Locator} el */
-  async #fetchPost(el) {
+  async #fetchPost(el: Locator): Promise<Post | null> {
     const showMore = el.getByRole('button', {
       name: /more/i
     })
@@ -291,7 +286,7 @@ section[class*="org-page-details"]
       el.getAttribute('data-urn'),
       this.runLocatorIfVisible(
         el.locator('.update-components-text').first(),
-        async loc => {
+        async (loc: Locator) => {
           return await loc.evaluate(ele => {
             ele
               .querySelectorAll("script,style,link,svg,[src^='data:image/']")
@@ -313,7 +308,7 @@ section[class*="org-page-details"]
       ),
       this.runLocatorIfVisible(
         el.locator('.update-components-actor__container').first(),
-        async loc => {
+        async (loc: Locator) => {
           return await loc.evaluate(ele => {
             // @ts-expect-error this is loaded in runtime
             return harvest(
@@ -341,7 +336,7 @@ div
             '.update-components-actor__sub-description > span:first-child'
           )
           .first(),
-        async loc => {
+        async (loc: Locator) => {
           return await loc.evaluate(ele => {
             return ele.textContent?.trim().split(' ')?.[0]
           })

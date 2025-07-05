@@ -2,11 +2,11 @@ import fastify from 'fastify'
 import { chromium } from 'playwright-extra'
 import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 import dotenv from 'dotenv'
-import { Linkedin } from './modules/linkedin.mjs'
-import { Search } from './modules/search.mjs'
+import { Linkedin } from './modules/linkedin.ts'
+import { Search } from './modules/search.ts'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { News } from './modules/news.mjs'
+import { News } from './modules/news.ts'
 import type { BrowserContext, ChromiumBrowser } from 'playwright'
 
 dotenv.config()
@@ -146,10 +146,7 @@ app.get<{
       return
     }
 
-    const source: import('./modules/source.mjs').Source = new Ctor(
-      context,
-      params
-    )
+    const source = new Ctor(context, params)
 
     await source.init()
 

@@ -1,43 +1,25 @@
-import { RunnerError } from '../lib/error.mjs'
-import { Source } from './source.mjs'
+import { RunnerError } from '../lib/error.ts'
+import { Source } from './source.ts'
 // @ts-expect-error no types
 import { harvestPageAll } from 'js-harvester/playwright.js'
 // @ts-expect-error no types
 import fixTime from 'fix-time'
+import type { Locator } from 'playwright'
 
 export class Search extends Source {
-  get requiresLogin() {
+  get requiresLogin(): boolean {
     return false
   }
 
-  get type() {
+  get type(): string {
     return 'search'
   }
 
-  async init() {
+  async init(): Promise<void> {
     await this.createDefaultPage()
-
-    // await this.page.setExtraHTTPHeaders({
-    //   Accept:
-    //     'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    //   'Accept-Encoding': 'gzip, deflate, br',
-    //   'Accept-Language': 'en-US,en;q=0.9',
-    //   'Cache-Control': 'no-cache',
-    //   Connection: 'keep-alive',
-    //   Pragma: 'no-cache',
-    //   'Sec-Ch-Ua': '"Google Chrome";v="123", "Not:A-Brand";v="8"',
-    //   'Sec-Ch-Ua-Mobile': '?0',
-    //   'Sec-Ch-Ua-Platform': '"Windows"',
-    //   'Sec-Fetch-Dest': 'document',
-    //   'Sec-Fetch-Mode': 'navigate',
-    //   'Sec-Fetch-Site': 'none',
-    //   'Sec-Fetch-User': '?1',
-    //   'Upgrade-Insecure-Requests': '1'
-    // })
   }
 
-  /** @param {string} url */
-  async process(url) {
+  async process(url: string): Promise<string> {
     await this.page.goto(url, { waitUntil: 'networkidle' })
 
     await this.humanMouseMovement()
@@ -83,7 +65,7 @@ export class Search extends Source {
     }
   }
 
-  async #fetchNewsResults() {
+  async #fetchNewsResults(): Promise<string> {
     const resultTpl = `
 li
   a[link=href]
@@ -125,8 +107,8 @@ li
     })
   }
 
-  async #fetchSearchResults() {
-    const results = await this.page
+  async #fetchSearchResults(): Promise<string> {
+    const results: Locator[] = await this.page
       .locator('.react-results--main li[data-layout="organic"]')
       .all()
 
@@ -152,11 +134,7 @@ li
     return JSON.stringify({ data: outcome })
   }
 
-  /**
-   * @param {number} pages
-   * @param {string} section
-   */
-  async #paginate(pages, section) {
+  async #paginate(pages: number, section: string): Promise<void> {
     if (pages > 1) {
       for (let page = 1; page <= pages; page++) {
         switch (section) {
