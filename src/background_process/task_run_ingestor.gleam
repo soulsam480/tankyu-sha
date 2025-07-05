@@ -14,6 +14,7 @@ import lifeguard
 import models/source
 import models/source_run
 import models/task_run
+import services/config
 
 pub type IngestorMessage {
   TaskRun(run_id: Int)
@@ -31,6 +32,8 @@ pub fn new(
   name: process.Name(lifeguard.PoolMsg(IngestorMessage)),
   conn: sqlite.Connection,
 ) {
+  let assert Ok(conf) = config.load()
+
   lifeguard.new_with_initialiser(name, 1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
@@ -40,7 +43,7 @@ pub fn new(
   })
   |> lifeguard.on_message(handle_message)
   // WARN: this is super taxing on the machine, dial up when more ram
-  |> lifeguard.size(2)
+  |> lifeguard.size(conf.ingestor_actor_pool_count)
   |> lifeguard.supervised(1000)
 }
 
@@ -101,6 +104,8 @@ fn handle_message(state: State, message: IngestorMessage) {
         |> task_run.update(conn)
         |> logger.trap_notice(ingest_logger),
       )
+
+      logger.info(ingest_logger, "Successfully stored task run content.")
 
       Ok(Nil)
     }

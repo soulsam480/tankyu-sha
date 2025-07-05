@@ -1,16 +1,19 @@
 import gleam/dict
 import gleam/dynamic
-import gleam/option.{type Option}
 import gleam/regexp
 import gleam/result
 import lib/error
+import services/config
 
 // src/ffi/dom.ex
 // @external(erlang, "Elixir.Ai", "find_source_type")
 // fn find_source_type(dict: dict.Dict(dom.Key, String)) -> dynamic.Dynamic
 
 @external(erlang, "Elixir.Ai", "get_feed_analysis")
-fn get_feed_analysis(posts: String) -> Result(dict.Dict(String, String), Nil)
+fn get_feed_analysis(
+  posts: String,
+  model: String,
+) -> Result(dict.Dict(String, String), Nil)
 
 @external(erlang, "Elixir.Ai", "get_news_summary")
 fn get_news_summary(
@@ -25,20 +28,22 @@ pub type Operation {
 }
 
 pub fn analyse(op: Operation, payload: String) {
+  use conf <- result.try(config.load())
+
   case op {
     SourceType -> {
       // TODO: need to clean this
       Ok("Not implemented")
     }
     FeedAnalysis -> {
-      get_feed_analysis(payload)
+      get_feed_analysis(payload, conf.summary_model_name)
       |> result.map(dict.get(_, "response"))
       |> result.flatten
       |> result.map(strip_thinking)
       |> result.flatten
     }
     ContentAnalysis -> {
-      get_news_summary(payload, "gemma3n:e2b-it-q4_K_M")
+      get_news_summary(payload, conf.summary_model_name)
       |> result.map(dict.get(_, "response"))
       |> result.flatten
       |> result.map(strip_thinking)
@@ -54,8 +59,11 @@ fn do_embed(
   model: String,
 ) -> Result(dict.Dict(String, List(List(Float))), dynamic.Dynamic)
 
-pub fn embed(input: List(String), model: Option(String)) {
-  do_embed(input, option.unwrap(model, "nomic-embed-text:latest"))
+pub fn embed(input: List(String)) {
+  use conf <- result.try(config.load())
+
+  do_embed(input, conf.embedding_model_name)
+  |> error.map_to_snag("Unable to embed")
 }
 
 pub fn pluck_embedding(res: dict.Dict(String, List(List(Float)))) {

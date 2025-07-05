@@ -25,3 +25,7 @@ run = "rm -rf development.sqlite3"
 [tasks."db:create"]
 description = "Create the database"
 run = "touch development.sqlite3"
+
+[tasks."config:init"]
+description = "Initialise the config file"
+run = "gleam run -m services/config"

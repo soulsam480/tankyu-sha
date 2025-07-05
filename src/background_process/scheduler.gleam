@@ -107,7 +107,7 @@ fn handle_message(state: State, message: SchedulerMessage) {
     }
   }
 
-  // Schedule the next run in 5 minutesAdd commentMore actions
+  // Schedule the next run in 5 minutes
   process.send_after(process.named_subject(state.self), 6000 * 5, Schedule)
 
   actor.continue(state)

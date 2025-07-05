@@ -7,11 +7,15 @@ import gleam/erlang/process
 import gleam/int
 import gleam/result
 import mist
+import services/config
 import wisp
 import wisp/wisp_mist
 
 pub fn main() {
   use conn <- sqlite.with_connection(sqlite.db_path())
+
+  // initialize config if not present
+  let assert Ok(_) = config.init()
 
   let sub = process.new_subject()
 

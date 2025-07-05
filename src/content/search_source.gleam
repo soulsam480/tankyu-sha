@@ -7,6 +7,7 @@ import gleam/result
 import lib/error
 import lib/logger
 import models/source
+import services/config
 import services/internet_search
 
 pub fn run(source: source.Source, conn: sqlite.Connection) {
@@ -16,14 +17,16 @@ pub fn run(source: source.Source, conn: sqlite.Connection) {
     dict.get(source.meta, "search_str") |> error.map_to_snag(""),
   )
 
+  use conf <- result.try(config.load())
+
   use results <- result.try(
     internet_search.ddg(search_descr, [
-      // TODO: we can let the customise this per task
+      // TODO: allow config from task via source meta
       internet_search.Pages("1"),
-      internet_search.Range("d"),
+      internet_search.Range(conf.ddg_result_range),
     ])
     // NOTE: take first 5 for now as search is super taxing on compute
-    |> result.map(list.take(_, 5)),
+    |> result.map(list.take(_, conf.max_search_source_results)),
   )
 
   logger.info(

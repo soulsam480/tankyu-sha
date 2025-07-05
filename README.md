@@ -33,7 +33,8 @@ in a while. will fix that
       reuse same context
 - [ ] Kill playwright service after cooldown period
 - [x] finish search source
-- [ ] expose all config options via UI
+- [x] ~~expose all config options via UI~~ It's exposed via
+      `priv/app_config.json` now, use `mise run config:init` to generate it
   - summarry model, embedding model, or maybe a model per run
   - chromium location <- useful when running outside docker
 - [ ] add courier actor to send digest

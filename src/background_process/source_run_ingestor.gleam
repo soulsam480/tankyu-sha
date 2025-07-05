@@ -18,6 +18,7 @@ import lifeguard
 import models/document
 import models/source
 import models/source_run
+import services/config
 
 type Ingestable {
   Ingestable(index: Int, doc: String)
@@ -47,6 +48,8 @@ pub fn new(
     lifeguard.PoolMsg(task_run_ingestor.IngestorMessage),
   ),
 ) {
+  let assert Ok(conf) = config.load()
+
   lifeguard.new_with_initialiser(name, 1000, fn(self) {
     let selector = process.new_selector() |> process.select(self)
 
@@ -56,7 +59,7 @@ pub fn new(
   })
   |> lifeguard.on_message(handle_message)
   // WARN: this is super taxing on the machine, dial up when more ram
-  |> lifeguard.size(2)
+  |> lifeguard.size(conf.ingestor_actor_pool_count)
   |> lifeguard.supervised(1000)
 }
 
@@ -125,7 +128,7 @@ fn handle_message(state: State, message: IngestorMessage) {
           )
 
           use res <- result.try(
-            ai.embed(chunks |> list.map(fn(it) { it.doc }), option.None)
+            ai.embed(chunks |> list.map(fn(it) { it.doc }))
             |> error.map_to_snag("invalid embed")
             |> logger.trap_notice(ingest_logger),
           )

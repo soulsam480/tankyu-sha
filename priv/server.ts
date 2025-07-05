@@ -8,6 +8,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { News } from './modules/news.ts'
 import type { BrowserContext, ChromiumBrowser } from 'playwright'
+import conf from './app_config.json' with { type: 'json' }
 
 dotenv.config()
 
@@ -60,9 +61,7 @@ app.get<{
 
     browser ??= await chromium.launch({
       headless: !headed,
-      executablePath: use_system
-        ? undefined
-        : '/Applications/Chromium.app/Contents/MacOS/Chromium',
+      executablePath: use_system ? undefined : conf.chrome_path,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
