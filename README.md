@@ -38,6 +38,8 @@ in a while. will fix that
   - summarry model, embedding model, or maybe a model per run
   - chromium location <- useful when running outside docker
 - [ ] add courier actor to send digest
+- [ ] some how add a setup to monitor system memory load and throttle LLM ops +
+      browser ops
 - [ ] add UI for home page task + source creation
 - [ ] add UI for task list
 - [ ] add UI for task_runs -> source_runs
