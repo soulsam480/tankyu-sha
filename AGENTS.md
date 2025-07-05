@@ -149,5 +149,5 @@ When helping with Tankyu Sha stuff:
 - You can use the `todo` keyword when something is not done yet
 
 Remember to refer to the documentation files for
-[detailed language features](/gleam_tour.md) and
-[project setup instructions](/writing_gleam.md).
+[detailed language features](/docs/gleam_tour.md) and
+[project setup instructions](/docs/writing_gleam.md).
