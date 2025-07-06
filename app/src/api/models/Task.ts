@@ -37,10 +37,7 @@ export const createTask = async (
 
 export const updateTask = async (
   id: number,
-  task: Omit<
-    Task,
-    "id" | "created_at" | "updated_at" | "active" | "last_run_at"
-  >,
+  task: Omit<Task, "id" | "created_at" | "updated_at" | "last_run_at">,
 ): Promise<Task> => {
   const response = await fetch(`/api/tasks/${id}`, {
     method: "PUT",

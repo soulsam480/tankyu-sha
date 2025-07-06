@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.19",
+    "@headlessui/react": "^2.2.4",
     "@mozilla/readability": "^0.6.0",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.81.2",

@@ -170,18 +170,8 @@ order by distance asc;",
   Ok(items)
 }
 
-pub fn of_source_run(run_id: Int, vec: List(Float), conn: sqlite.Connection) {
-  use items <- result.try(sqlite.query(
-    "select id, content, created_at, meta, source_run_id
-from documents
-where source_run_id = ?
-and content_embedding match vec_f32(?)
-and k = 10
-order by distance asc;",
-    conn,
-    [run_id |> sqlite.bind, vec |> sqlite.vec],
-    document_decoder(),
-  ))
-
-  Ok(items)
+pub fn delete_by_task_run_id(task_run_id: Int, conn: sqlite.Connection) {
+  sqlite.exec(conn, "DELETE FROM documents WHERE task_run_id = ?", [
+    task_run_id |> sqlite.bind,
+  ])
 }

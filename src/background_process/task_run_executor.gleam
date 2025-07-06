@@ -46,7 +46,7 @@ pub fn new(
     |> Ok
   })
   |> lifeguard.on_message(handle_message)
-  |> lifeguard.size(10)
+  |> lifeguard.size(5)
   |> lifeguard.supervised(1000)
 }
 

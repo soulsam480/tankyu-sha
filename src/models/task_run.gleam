@@ -217,6 +217,18 @@ pub fn pending_in_last_30_minutes(conn: sqlite.Connection) {
   Ok(items)
 }
 
+pub fn find_before_days(days: Int, conn: sqlite.Connection) {
+  let days_string = int.to_string(days)
+
+  let query = "SELECT id, task_id, status, content, created_at, updated_at
+     FROM task_runs
+     WHERE updated_at <= DATETIME('now', '-" <> days_string <> " days');"
+
+  use items <- result.try(sqlite.query(query, conn, [], task_run_decoder()))
+
+  Ok(items)
+}
+
 pub fn to_json(t: TaskRun) -> json.Json {
   json.object([
     #("id", json.int(t.id)),

@@ -14,14 +14,20 @@ import wisp
 // We'll use the same one for PUT (update) and POST (create)
 
 pub type TaskPayload {
-  TaskPayload(topic: String, schedule: String, delivery_route: String)
+  TaskPayload(
+    topic: String,
+    schedule: String,
+    delivery_route: String,
+    active: Bool,
+  )
 }
 
 fn task_payload_decoder() {
   use topic <- decode.field("topic", decode.string)
   use schedule <- decode.field("schedule", decode.string)
   use delivery_route <- decode.field("delivery_route", decode.string)
-  decode.success(TaskPayload(topic:, schedule:, delivery_route:))
+  use active <- decode.optional_field("active", True, decode.bool)
+  decode.success(TaskPayload(topic:, schedule:, delivery_route:, active:))
 }
 
 // JSON Encoder
@@ -136,6 +142,7 @@ fn update(ctx: router_context.RouterContext, id_str: String) -> wisp.Response {
     let task_to_update =
       task.Task(
         ..original_task,
+        active: payload.active,
         topic: payload.topic,
         schedule: payload.schedule,
         delivery_route: payload.delivery_route,

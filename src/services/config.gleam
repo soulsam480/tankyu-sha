@@ -8,13 +8,25 @@ import snag
 
 pub type Config {
   Config(
+    // path to the chrome binary, passed as is to playwright
     chrome_path: String,
+    // model to use for source run and parent task run summaries
+    // NOTE: bigger the model <> larger the memory consumption <> slower the summaries
     summary_model_name: String,
+    // model to use for embedding the source run and parent task run content
+    // NOTE: rn the original text content is summarized, and source material is deleted
+    // this is to use less storage and memory
     embedding_model_name: String,
+    // show ddg results with this range d,w,m,y
     ddg_result_range: String,
+    // when consuming search results, take the below count from first page
+    // default 5, set to -1 to take all
     max_search_source_results: Int,
     /// bigger count increases memory usage
     ingestor_actor_pool_count: Int,
+    // default 2, deleted after 2 days
+    // delete embeddings after n days from run
+    document_expiry_after_days: Int,
   )
 }
 
@@ -67,6 +79,7 @@ pub fn init() {
           ingestor_actor_pool_count: 2,
           max_search_source_results: 5,
           summary_model_name: "llama3.2:3b",
+          document_expiry_after_days: 2,
         )
         |> save()
 
@@ -92,8 +105,15 @@ fn config_decoder() -> decode.Decoder(Config) {
     "max_search_source_results",
     decode.int,
   )
+
   use ingestor_actor_pool_count <- decode.field(
     "ingestor_actor_pool_count",
+    decode.int,
+  )
+
+  use document_expiry_after_days <- decode.optional_field(
+    "document_expiry_after_days",
+    -1,
     decode.int,
   )
 
@@ -104,6 +124,7 @@ fn config_decoder() -> decode.Decoder(Config) {
     ddg_result_range:,
     max_search_source_results:,
     ingestor_actor_pool_count:,
+    document_expiry_after_days:,
   ))
 }
 
@@ -115,6 +136,7 @@ fn to_json(config: Config) -> json.Json {
     ddg_result_range:,
     max_search_source_results:,
     ingestor_actor_pool_count:,
+    document_expiry_after_days:,
   ) = config
 
   json.object([
@@ -124,6 +146,7 @@ fn to_json(config: Config) -> json.Json {
     #("ddg_result_range", json.string(ddg_result_range)),
     #("max_search_source_results", json.int(max_search_source_results)),
     #("ingestor_actor_pool_count", json.int(ingestor_actor_pool_count)),
+    #("document_expiry_after_days", json.int(document_expiry_after_days)),
   ])
 }
 

@@ -1,4 +1,5 @@
 import background_process/cleaner
+import background_process/document_cleaner
 import background_process/registry
 import background_process/scheduler
 import background_process/source_run_executor
@@ -27,8 +28,8 @@ pub fn start(sub: process.Subject(registry.Registry)) {
   let source_run_executor_name = source_run_executor.new_name()
   let task_run_executor_name = task_run_executor.new_name()
   let cleaner_name = cleaner.new_name()
+  let document_cleaner_name = document_cleaner.new_name()
   let scheduler_name = scheduler.new_name()
-
   let assert Ok(_) =
     static_supervisor.new(static_supervisor.OneForOne)
     |> static_supervisor.add(task_run_ingestor.new(task_run_ingestor_name, conn))
@@ -55,11 +56,21 @@ pub fn start(sub: process.Subject(registry.Registry)) {
     |> static_supervisor.add(
       supervision.worker(fn() { cleaner.new(cleaner_name, conn) }),
     )
+    |> static_supervisor.add(
+      supervision.worker(fn() {
+        document_cleaner.new(document_cleaner_name, conn)
+      }),
+    )
     |> static_supervisor.start()
-
   logger.info(sup_logger, "Started supervisor")
 
   process.send(process.named_subject(cleaner_name), cleaner.CheckStaleRuns)
+
+  process.send(
+    process.named_subject(document_cleaner_name),
+    document_cleaner.CleanUp,
+  )
+
   process.send(process.named_subject(scheduler_name), scheduler.Schedule)
 
   process.send(sub, registry.Registry(scheduler: scheduler_name))

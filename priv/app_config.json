@@ -4,6 +4,6 @@
   "embedding_model_name": "nomic-embed-text:latest",
   "ddg_result_range": "d",
   "max_search_source_results": 5,
-  "ingestor_actor_pool_count": 2
+  "ingestor_actor_pool_count": 2,
+  "document_expiry_after_days": 2
 }
-

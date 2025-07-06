@@ -166,6 +166,7 @@ fn do_active_batch_recursive(
   use items <- result.try(sqlite.query(
     "SELECT id, topic, active, schedule, last_run_at, delivery_route, created_at, updated_at 
     FROM tasks 
+    WHERE active = 1
     LIMIT ? OFFSET ?;",
     conn,
     [limit |> sqlite.bind, offset |> sqlite.bind],
