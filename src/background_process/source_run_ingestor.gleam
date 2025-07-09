@@ -71,7 +71,7 @@ fn handle_message(state: State, message: IngestorMessage) {
   let _ = case message {
     SourceRun(run_id) -> {
       use source_run <- result.try(
-        source_run.find(run_id, conn) |> logger.trap_notice(ingest_logger),
+        source_run.find(run_id, conn) |> logger.trap_error(ingest_logger),
       )
 
       let ingest_logger =
@@ -84,14 +84,14 @@ fn handle_message(state: State, message: IngestorMessage) {
 
       use source <- result.try(
         source.find(source_run.source_id, conn)
-        |> logger.trap_notice(ingest_logger),
+        |> logger.trap_error(ingest_logger),
       )
 
       use source_run <- result.try(
         source_run
         |> source_run.set_status(source_run.Embedding)
         |> source_run.update(conn)
-        |> logger.trap_notice(ingest_logger),
+        |> logger.trap_error(ingest_logger),
       )
 
       case source_run.content {
@@ -104,7 +104,7 @@ fn handle_message(state: State, message: IngestorMessage) {
 
           use summary <- result.try(
             ai.analyse(ai.ContentAnalysis, context)
-            |> logger.trap_notice(ingest_logger),
+            |> logger.trap_error(ingest_logger),
           )
 
           logger.info(ingest_logger, "Done analysing run. Updating run data")
@@ -113,7 +113,7 @@ fn handle_message(state: State, message: IngestorMessage) {
             source_run
             |> source_run.set_summary(option.Some(summary))
             |> source_run.update(conn)
-            |> logger.trap_notice(ingest_logger),
+            |> logger.trap_error(ingest_logger),
           )
 
           logger.info(ingest_logger, "Begin embedding")
@@ -130,19 +130,19 @@ fn handle_message(state: State, message: IngestorMessage) {
           use res <- result.try(
             ai.embed(chunks |> list.map(fn(it) { it.doc }))
             |> error.map_to_snag("invalid embed")
-            |> logger.trap_notice(ingest_logger),
+            |> logger.trap_error(ingest_logger),
           )
 
           use embeds <- result.try(
             ai.pluck_embedding(res)
-            |> logger.trap_notice(ingest_logger),
+            |> logger.trap_error(ingest_logger),
           )
 
           let _ =
             list.index_map(embeds, fn(it_embed, index) {
               use doc <- result.try(
                 list.find(chunks, fn(it_chunk) { it_chunk.index == index })
-                |> logger.trap_notice(ingest_logger),
+                |> logger.trap_error(ingest_logger),
               )
 
               use _ <- result.try(
@@ -151,7 +151,7 @@ fn handle_message(state: State, message: IngestorMessage) {
                 |> document.set_content(doc.doc)
                 |> document.set_content_embedding(it_embed)
                 |> document.create(conn)
-                |> logger.trap_notice(ingest_logger)
+                |> logger.trap_error(ingest_logger)
                 |> result.replace_error(Nil),
               )
 
@@ -169,7 +169,7 @@ fn handle_message(state: State, message: IngestorMessage) {
             // NOTE: we're nullifying the original content so that ingested docuements become the single source of truth
             |> source_run.set_content(option.None)
             |> source_run.update(conn)
-            |> logger.trap_notice(ingest_logger),
+            |> logger.trap_error(ingest_logger),
           )
 
           case source_run.task_run_id {
@@ -181,7 +181,7 @@ fn handle_message(state: State, message: IngestorMessage) {
 
               use runs <- result.try(
                 source_run.pending_of_task_run(source_run.task_run_id, conn)
-                |> logger.trap_notice(ingest_logger),
+                |> logger.trap_error(ingest_logger),
               )
 
               let _ = case utils.list_is_empty(runs) {
@@ -210,7 +210,7 @@ fn handle_message(state: State, message: IngestorMessage) {
                       let _ =
                         source_run.set_status(first_run, source_run.Success)
                         |> source_run.update(conn)
-                        |> logger.trap_notice(ingest_logger)
+                        |> logger.trap_error(ingest_logger)
 
                       let _ =
                         lifeguard.send(
@@ -218,7 +218,7 @@ fn handle_message(state: State, message: IngestorMessage) {
                           task_run_ingestor.TaskRun(run_id),
                           1000,
                         )
-                        |> logger.trap_notice(ingest_logger)
+                        |> logger.trap_error(ingest_logger)
 
                       logger.info(
                         ingest_logger,

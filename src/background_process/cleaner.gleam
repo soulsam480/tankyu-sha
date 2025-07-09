@@ -46,7 +46,7 @@ fn handle_message(state: State, message: CleanerMessage) {
 
       use stale_task_runs <- result.try(
         task_run.pending_in_last_30_minutes(conn)
-        |> logger.trap_notice(cleaner_logger),
+        |> logger.trap_error(cleaner_logger),
       )
 
       list.each(stale_task_runs, fn(t_run) {
@@ -54,7 +54,7 @@ fn handle_message(state: State, message: CleanerMessage) {
           t_run
           |> task_run.set_status(task_run.Failure)
           |> task_run.update(conn)
-          |> logger.trap_notice(cleaner_logger)
+          |> logger.trap_error(cleaner_logger)
 
         logger.warn(
           cleaner_logger,
@@ -65,7 +65,7 @@ fn handle_message(state: State, message: CleanerMessage) {
       // Clean up stale source runs
       use stale_source_runs <- result.try(
         source_run.pending_in_last_30_minutes(conn)
-        |> logger.trap_notice(cleaner_logger),
+        |> logger.trap_error(cleaner_logger),
       )
 
       list.each(stale_source_runs, fn(s_run) {
@@ -73,7 +73,7 @@ fn handle_message(state: State, message: CleanerMessage) {
           s_run
           |> source_run.set_status(source_run.Failure)
           |> source_run.update(conn)
-          |> logger.trap_notice(cleaner_logger)
+          |> logger.trap_error(cleaner_logger)
 
         logger.warn(
           cleaner_logger,

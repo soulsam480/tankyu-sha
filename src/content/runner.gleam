@@ -77,7 +77,7 @@ pub fn run(
         |> source_run.set_status(source_run.Failure)
         |> source_run.update(conn)
 
-      logger.notice(runner_logger, "Source run failed to complete")
+      logger.error(runner_logger, "Source run failed to complete")
 
       Error(snag.new("Failed to run source"))
     }

@@ -51,7 +51,7 @@ pub fn warn(logger: Logger, message: String) {
   Logger(..logger, level: logging.Warning) |> write(message)
 }
 
-pub fn notice(logger: Logger, message: String) {
+pub fn error(logger: Logger, message: String) {
   Logger(..logger, level: logging.Error) |> write(message)
 }
 
@@ -67,10 +67,10 @@ pub fn trap_warn(res: Result(a, b), logger: Logger) {
   }
 }
 
-pub fn trap_notice(res: Result(a, b), logger: Logger) {
+pub fn trap_error(res: Result(a, b), logger: Logger) {
   case res {
     Error(e) -> {
-      Logger(..logger, level: logging.Notice) |> write(e |> string.inspect)
+      Logger(..logger, level: logging.Error) |> write(e |> string.inspect)
       res
     }
     _ -> {

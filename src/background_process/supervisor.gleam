@@ -10,11 +10,12 @@ import ffi/sqlite
 import gleam/erlang/process
 import gleam/otp/static_supervisor
 import gleam/otp/supervision
+import lib/error
 import lib/logger
 
 /// main entry of all background processes
 /// todo more comments
-pub fn start(sub: process.Subject(registry.Registry)) {
+pub fn start(parent: process.Subject(registry.Registry)) {
   let sup_logger = logger.new("Supervisor")
 
   logger.info(sup_logger, "Starting supervisor")
@@ -30,6 +31,7 @@ pub fn start(sub: process.Subject(registry.Registry)) {
   let cleaner_name = cleaner.new_name()
   let document_cleaner_name = document_cleaner.new_name()
   let scheduler_name = scheduler.new_name()
+
   let assert Ok(_) =
     static_supervisor.new(static_supervisor.OneForOne)
     |> static_supervisor.add(task_run_ingestor.new(task_run_ingestor_name, conn))
@@ -62,6 +64,7 @@ pub fn start(sub: process.Subject(registry.Registry)) {
       }),
     )
     |> static_supervisor.start()
+
   logger.info(sup_logger, "Started supervisor")
 
   process.send(process.named_subject(cleaner_name), cleaner.CheckStaleRuns)
@@ -73,7 +76,7 @@ pub fn start(sub: process.Subject(registry.Registry)) {
 
   process.send(process.named_subject(scheduler_name), scheduler.Schedule)
 
-  process.send(sub, registry.Registry(scheduler: scheduler_name))
+  process.send(parent, registry.Registry(scheduler: scheduler_name))
 
   process.sleep_forever()
 }

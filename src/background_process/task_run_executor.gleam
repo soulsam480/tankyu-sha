@@ -58,7 +58,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
       logger.info(exec_logger, "Executing task run " <> int.to_string(run_id))
 
       use task_run <- result.try(
-        task_run.find(run_id, state.conn) |> logger.trap_notice(exec_logger),
+        task_run.find(run_id, state.conn) |> logger.trap_error(exec_logger),
       )
 
       let exec_logger =
@@ -72,14 +72,14 @@ fn handle_message(state: State, message: ExecutorMessage) {
 
       use sources <- result.try(
         source.of_task(task_run.task_id, state.conn)
-        |> logger.trap_notice(exec_logger),
+        |> logger.trap_error(exec_logger),
       )
 
       use task_run <- result.try(
         task_run
         |> task_run.set_status(task_run.Running)
         |> task_run.update(state.conn)
-        |> logger.trap_notice(exec_logger),
+        |> logger.trap_error(exec_logger),
       )
 
       logger.info(
@@ -93,7 +93,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
             task_run
             |> task_run.set_status(task_run.Success)
             |> task_run.update(state.conn)
-            |> logger.trap_notice(exec_logger),
+            |> logger.trap_error(exec_logger),
           )
 
           logger.info(
@@ -124,7 +124,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
               |> source_run.set_source_id(source.id)
               |> source_run.set_status(source_run.Queued)
               |> source_run.create(state.conn)
-              |> logger.trap_notice(exec_logger),
+              |> logger.trap_error(exec_logger),
             )
 
             let _ =

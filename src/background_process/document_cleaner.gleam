@@ -48,13 +48,13 @@ fn handle_message(state: State, message: DocumentCleanerMessage) {
 
       use task_runs <- result.try(
         task_run.find_before_days(conf.document_expiry_after_days, conn)
-        |> logger.trap_notice(cleaner_logger),
+        |> logger.trap_error(cleaner_logger),
       )
 
       list.each(task_runs, fn(t_run) {
         let assert Ok(_) =
           document.delete_by_task_run_id(t_run.id, conn)
-          |> logger.trap_notice(cleaner_logger)
+          |> logger.trap_error(cleaner_logger)
 
         logger.warn(
           cleaner_logger,

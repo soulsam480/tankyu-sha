@@ -55,14 +55,14 @@ fn handle_message(state: State, message: IngestorMessage) {
   let _ = case message {
     TaskRun(run_id) -> {
       use task_run <- result.try(
-        task_run.find(run_id, conn) |> logger.trap_notice(ingest_logger),
+        task_run.find(run_id, conn) |> logger.trap_error(ingest_logger),
       )
 
       use task_run <- result.try(
         task_run
         |> task_run.set_status(task_run.Embedding)
         |> task_run.update(conn)
-        |> logger.trap_notice(ingest_logger),
+        |> logger.trap_error(ingest_logger),
       )
 
       let ingest_logger =
@@ -94,7 +94,7 @@ fn handle_message(state: State, message: IngestorMessage) {
 
       use summary <- result.try(
         ai.analyse(ai.ContentAnalysis, context)
-        |> logger.trap_notice(ingest_logger),
+        |> logger.trap_error(ingest_logger),
       )
 
       use _ <- result.try(
@@ -102,7 +102,7 @@ fn handle_message(state: State, message: IngestorMessage) {
         |> task_run.set_content(summary)
         |> task_run.set_status(task_run.Success)
         |> task_run.update(conn)
-        |> logger.trap_notice(ingest_logger),
+        |> logger.trap_error(ingest_logger),
       )
 
       logger.info(ingest_logger, "Successfully stored task run content.")

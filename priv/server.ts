@@ -61,7 +61,8 @@ app.get<{
 
     browser ??= await chromium.launch({
       headless: !headed,
-      executablePath: use_system ? undefined : conf.chrome_path,
+      executablePath:
+        use_system || !conf.chrome_path ? undefined : conf.chrome_path,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
@@ -98,7 +99,7 @@ app.get<{
 
       // NOTE: we're responding with dummy css so client
       // rendered apps continue to work when stylesheets are
-      // injectsed dynamically to the page with link tags
+      // injected dynamically to the page with link tags
       if (request.resourceType() === 'stylesheet') {
         return route.fulfill({
           status: 200,

@@ -60,7 +60,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
       logger.info(exec_logger, "Executing source run " <> int.to_string(run_id))
 
       use run <- result.try(
-        source_run.find(run_id, state.conn) |> logger.trap_notice(exec_logger),
+        source_run.find(run_id, state.conn) |> logger.trap_error(exec_logger),
       )
 
       let scoped_source_logger =
@@ -78,7 +78,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
         run
         |> source_run.set_status(source_run.Running)
         |> source_run.update(state.conn)
-        |> logger.trap_notice(exec_logger),
+        |> logger.trap_error(exec_logger),
       )
 
       use soc <- result.try(source.find(run.source_id, state.conn))
@@ -121,7 +121,7 @@ fn handle_message(state: State, message: ExecutorMessage) {
                   |> source_run.set_source_id(source.id)
                   |> source_run.set_status(source_run.Queued)
                   |> source_run.create(state.conn)
-                  |> logger.trap_notice(exec_logger),
+                  |> logger.trap_error(exec_logger),
                 )
 
                 let _ =

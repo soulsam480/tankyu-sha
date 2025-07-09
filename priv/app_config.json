@@ -1,5 +1,5 @@
 {
-  "chrome_path": "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  "chrome_path": null,
   "summary_model_name": "llama3.2:3b",
   "embedding_model_name": "nomic-embed-text:latest",
   "ddg_result_range": "d",

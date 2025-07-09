@@ -1,8 +1,10 @@
 import gleam/dynamic/decode
 import gleam/erlang/application
 import gleam/json
+import gleam/option
 import gleam/result
 import lib/error
+import lib/logger
 import simplifile
 import snag
 
@@ -40,14 +42,20 @@ fn get_path() {
 }
 
 pub fn load() {
-  use file_path <- result.try(get_path())
+  let conf_logger = logger.new("Config")
+
+  use file_path <- result.try(get_path() |> logger.trap_error(conf_logger))
 
   use content <- result.try(
-    simplifile.read(file_path) |> error.map_to_snag("Unable to read file"),
+    simplifile.read(file_path)
+    |> error.map_to_snag("Unable to read file")
+    |> logger.trap_error(conf_logger),
   )
 
   use conf <- result.try(
-    json.parse(content, config_decoder()) |> error.map_to_snag("Invalid config"),
+    json.parse(content, config_decoder())
+    |> error.map_to_snag("Invalid config")
+    |> logger.trap_error(conf_logger),
   )
 
   Ok(conf)
@@ -93,12 +101,22 @@ pub fn init() {
 }
 
 fn config_decoder() -> decode.Decoder(Config) {
-  use chrome_path <- decode.field("chrome_path", decode.string)
+  use chrome_path <- decode.field(
+    "chrome_path",
+    decode.optional(decode.string)
+      |> decode.map(option.unwrap(
+        _,
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      )),
+  )
+
   use summary_model_name <- decode.field("summary_model_name", decode.string)
+
   use embedding_model_name <- decode.field(
     "embedding_model_name",
     decode.string,
   )
+
   use ddg_result_range <- decode.field("ddg_result_range", decode.string)
 
   use max_search_source_results <- decode.field(
