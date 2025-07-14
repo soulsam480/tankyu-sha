@@ -139,23 +139,27 @@ fn handle_message(state: State, message: IngestorMessage) {
           )
 
           let _ =
-            list.index_map(embeds, fn(it_embed, index) {
-              use doc <- result.try(
-                list.find(chunks, fn(it_chunk) { it_chunk.index == index })
-                |> logger.trap_error(ingest_logger),
-              )
+            embeds
+            |> list.sized_chunk(10)
+            |> list.each(fn(embeds) {
+              list.index_map(embeds, fn(it_embed, index) {
+                use doc <- result.try(
+                  list.find(chunks, fn(it_chunk) { it_chunk.index == index })
+                  |> logger.trap_error(ingest_logger),
+                )
 
-              use _ <- result.try(
-                document.new()
-                |> document.set_source_run_id(run_id)
-                |> document.set_content(doc.doc)
-                |> document.set_content_embedding(it_embed)
-                |> document.create(conn)
-                |> logger.trap_error(ingest_logger)
-                |> result.replace_error(Nil),
-              )
+                use _ <- result.try(
+                  document.new()
+                  |> document.set_source_run_id(run_id)
+                  |> document.set_content(doc.doc)
+                  |> document.set_content_embedding(it_embed)
+                  |> document.create(conn)
+                  |> logger.trap_error(ingest_logger)
+                  |> result.replace_error(Nil),
+                )
 
-              Ok(Nil)
+                Ok(Nil)
+              })
             })
 
           logger.info(

@@ -10,7 +10,6 @@ import ffi/sqlite
 import gleam/erlang/process
 import gleam/otp/static_supervisor
 import gleam/otp/supervision
-import lib/error
 import lib/logger
 
 /// main entry of all background processes
