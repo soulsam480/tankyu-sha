@@ -1,6 +1,6 @@
-import type { TaskRun } from '../api/models/TaskRun'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { TaskRun } from '../api/models/TaskRun'
 
 interface TaskRunItemProps {
   run: TaskRun

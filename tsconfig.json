@@ -21,7 +21,8 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
+    "noPropertyAccessFromIndexSignature": false,
+    "types": ["unplugin-icons/types/react"]
   },
-  "include": ["priv/**/*"]
+  "include": ["priv/**/*", "app/src/vite-env.d.ts"]
 }

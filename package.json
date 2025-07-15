@@ -7,16 +7,21 @@
     "start:runner": "node --experimental-strip-types priv/server.ts",
     "dev": "vite --port 3000",
     "build": "vite build && tsc",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "format": "bunx --bun biome format --write --config-path biome.jsonc"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
+    "@iconify-json/carbon": "^1.2.10",
+    "@svgr/core": "^8.1.0",
+    "@svgr/plugin-jsx": "^8.1.0",
     "@types/node": "^24.0.13",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@types/turndown": "^5.0.5",
     "@vitejs/plugin-react-swc": "^3.10.2",
     "typescript": "^5.8.3",
+    "unplugin-icons": "^22.1.0",
     "vite": "^6.3.5"
   },
   "dependencies": {
