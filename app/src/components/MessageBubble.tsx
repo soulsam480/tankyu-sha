@@ -1,3 +1,5 @@
+import { Card, Text, Flex } from "@radix-ui/themes";
+
 interface Message {
   role: "user" | "assistant" | "tool";
   content: string;
@@ -8,21 +10,19 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
+  const isUser = message.role === "user";
+
   return (
-    <div
-      className={`flex items-start gap-4 ${
-        message.role === "user" ? "justify-end" : "justify-start"
-      }`}
-    >
-      <div
-        className={`rounded-lg px-4 py-2 max-w-2xl break-words ${
-          message.role === "user"
-            ? "bg-primary-500 text-white"
-            : "bg-secondary-100 text-gray-800"
-        }`}
+    <Flex justify={isUser ? "end" : "start"}>
+      <Card
+        style={{
+          maxWidth: "80%",
+          backgroundColor: isUser ? "var(--accent-9)" : "var(--gray-3)",
+          color: isUser ? "white" : "var(--gray-12)",
+        }}
       >
-        {message.content}
-      </div>
-    </div>
+        <Text>{message.content}</Text>
+      </Card>
+    </Flex>
   );
 }

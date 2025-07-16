@@ -1,24 +1,28 @@
-import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import Sidebar from "../components/Sidebar";
-import TanStackQueryLayout from "../integrations/tanstack-query/layout.tsx";
+import { Box, Flex } from '@radix-ui/themes'
+import type { QueryClient } from '@tanstack/react-query'
+import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import Sidebar from '../components/Sidebar'
+import TanStackQueryLayout from '../integrations/tanstack-query/layout.tsx'
+import '../styles.css'
 
 interface MyRouterContext {
-  queryClient: QueryClient;
+  queryClient: QueryClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: () => (
-    <div className="flex h-screen bg-secondary-100">
+    <Flex height='100vh'>
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-white">
-          <Outlet />
-        </main>
+      <Flex direction='column' flexGrow='1' style={{ overflow: 'hidden' }}>
+        <Box flexGrow='1' style={{ overflowY: 'auto' }}>
+          <main>
+            <Outlet />
+          </main>
+        </Box>
         <TanStackRouterDevtools />
         <TanStackQueryLayout />
-      </div>
-    </div>
-  ),
-});
+      </Flex>
+    </Flex>
+  )
+})

@@ -1,36 +1,39 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { getTaskRunsByTaskId } from '../api/models/TaskRun'
-import type { TaskRun } from '../api/models/TaskRun'
-import { TaskRunItem } from '../components/TaskRunItem'
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { getTaskRunsByTaskId } from "../api/models/TaskRun";
+import type { TaskRun } from "../api/models/TaskRun";
+import { TaskRunItem } from "../components/TaskRunItem";
+import { Box, Heading, Flex, Text } from "@radix-ui/themes";
 
 const taskRunsQueryOptions = (taskId: string) => ({
-  queryKey: ['tasks', taskId, 'runs'],
-  queryFn: () => getTaskRunsByTaskId(taskId)
-})
+  queryKey: ["tasks", taskId, "runs"],
+  queryFn: () => getTaskRunsByTaskId(taskId),
+});
 
-export const Route = createFileRoute('/tasks_/$taskId/runs')({
+export const Route = createFileRoute("/tasks_/$taskId/runs")({
   loader: ({ context: { queryClient }, params: { taskId } }) =>
     queryClient.ensureQueryData(taskRunsQueryOptions(taskId)),
-  component: TaskRunsComponent
-})
+  component: TaskRunsComponent,
+});
 
 function TaskRunsComponent() {
-  const { taskId } = Route.useParams()
-  const { data: taskRuns } = useQuery(taskRunsQueryOptions(taskId))
+  const { taskId } = Route.useParams();
+  const { data: taskRuns } = useQuery(taskRunsQueryOptions(taskId));
 
   if (!taskRuns) {
-    return <div>Loading...</div>
+    return <Text>Loading...</Text>;
   }
 
   return (
-    <div className='p-4'>
-      <h1 className='text-2xl font-bold mb-4'>Task Runs for Task {taskId}</h1>
-      <ul className='space-y-2'>
+    <Box p="4">
+      <Heading as="h1" size="6" mb="4">
+        Task Runs for Task {taskId}
+      </Heading>
+      <Flex direction="column" gap="2">
         {taskRuns.map((run: TaskRun) => (
           <TaskRunItem key={run.id} run={run} />
         ))}
-      </ul>
-    </div>
-  )
+      </Flex>
+    </Box>
+  );
 }

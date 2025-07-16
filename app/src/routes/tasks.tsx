@@ -1,35 +1,38 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { getTasks } from '../api/models/Task'
-import type { Task } from '../api/models/Task'
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { getTasks } from "../api/models/Task";
+import type { Task } from "../api/models/Task";
+import { Box, Heading, Flex } from "@radix-ui/themes";
 
 const tasksQueryOptions = {
-  queryKey: ['tasks'],
-  queryFn: getTasks
-}
+  queryKey: ["tasks"],
+  queryFn: getTasks,
+};
 
-export const Route = createFileRoute('/tasks')({
+export const Route = createFileRoute("/tasks")({
   loader: ({ context: { queryClient } }) =>
     queryClient.ensureQueryData(tasksQueryOptions),
-  component: TasksComponent
-})
+  component: TasksComponent,
+});
 
-import { CreateTaskForm } from '../components/CreateTaskForm'
+import { CreateTaskForm } from "../components/CreateTaskForm";
 
-import { TaskItem } from '../components/TaskItem'
+import { TaskItem } from "../components/TaskItem";
 
 function TasksComponent() {
-  const { data: tasks } = useQuery(tasksQueryOptions)
+  const { data: tasks } = useQuery(tasksQueryOptions);
 
   return (
-    <div className='p-4'>
-      <h1 className='text-2xl font-bold mb-4'>Tasks</h1>
+    <Box p="4">
+      <Heading as="h1" size="6" mb="4">
+        Tasks
+      </Heading>
       <CreateTaskForm />
-      <ul className='space-y-2'>
+      <Flex direction="column" gap="2">
         {tasks?.map((task: Task) => (
           <TaskItem key={task.id} task={task} />
         ))}
-      </ul>
-    </div>
-  )
+      </Flex>
+    </Box>
+  );
 }

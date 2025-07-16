@@ -1,21 +1,28 @@
-import { useQuery } from '@tanstack/react-query'
-import { getTaskRuns } from '@/api/models/TaskRun'
-import { TaskRunItem } from './TaskRunItem'
+import { useQuery } from "@tanstack/react-query";
+import { getTaskRuns } from "@/api/models/TaskRun";
+import { TaskRunItem } from "./TaskRunItem";
+import { Card, Heading, Inset, Flex, Box } from "@radix-ui/themes";
 
 export default function LastRuns() {
   const { data: taskRuns = [] } = useQuery({
-    queryKey: ['taskRuns'],
-    queryFn: getTaskRuns
-  })
+    queryKey: ["taskRuns"],
+    queryFn: getTaskRuns,
+  });
 
   return (
-    <div className='w-1/3 p-4 border-l'>
-      <h2 className='text-xl font-bold mb-4'>Last runs</h2>
-      <div className='space-y-2'>
-        {taskRuns.map(run => (
+    <Card>
+      <Inset>
+        <Box p="4">
+          <Heading as="h2" size="4">
+            Last runs
+          </Heading>
+        </Box>
+      </Inset>
+      <Flex direction="column" gap="2" p="4">
+        {taskRuns.map((run) => (
           <TaskRunItem key={run.id} run={run} />
         ))}
-      </div>
-    </div>
-  )
+      </Flex>
+    </Card>
+  );
 }

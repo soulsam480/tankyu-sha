@@ -22,7 +22,11 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
-    "types": ["unplugin-icons/types/react"]
+    "types": [
+      "unplugin-icons/types/react",
+      "@tailwindcss/vite",
+      "@tanstack/router-plugin/vite"
+    ]
   },
-  "include": ["priv/**/*", "app/src/vite-env.d.ts"]
+  "include": ["priv/**/*", "app/src/vite-env.d.ts", "vite.config.ts"]
 }

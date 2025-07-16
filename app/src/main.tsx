@@ -1,13 +1,12 @@
+import { Theme } from '@radix-ui/themes'
+import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
-
 import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx'
+import '@radix-ui/themes/styles.css'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
-
-import './styles.css'
 
 // Create a new router instance
 const router = createRouter({
@@ -35,9 +34,11 @@ if (rootElement && !rootElement.innerHTML) {
 
   root.render(
     <StrictMode>
-      <TanStackQueryProvider.Provider>
-        <RouterProvider router={router} />
-      </TanStackQueryProvider.Provider>
+      <Theme accentColor='iris' appearance='dark' radius='large'>
+        <TanStackQueryProvider.Provider>
+          <RouterProvider router={router} />
+        </TanStackQueryProvider.Provider>
+      </Theme>
     </StrictMode>
   )
 }
