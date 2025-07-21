@@ -1,3 +1,4 @@
+import app/controllers/chat
 import app/controllers/task_runs
 import app/controllers/tasks
 import app/router_context
@@ -23,7 +24,9 @@ pub fn handle_request(context: router_context.RouterContext) -> wisp.Response {
       tasks.route(router_context.RouterContext(..context, segments: rest))
     }
 
-    _ -> wisp.not_found()
+    ["api", "chat", ..rest] -> {
+      chat.route(router_context.RouterContext(..context, segments: rest))
+    }
   }
 }
 

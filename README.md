@@ -2,6 +2,11 @@
 
 > seeker in japaneesse
 
+### Status
+
+> Work is paused here and I really want to finish it off in next couple of
+> months. Focusing on few different things at the moment.
+
 ### What's this ?
 
 1. tankyu-sha is is an AI assisted personal digest tool.
@@ -10,6 +15,8 @@
 
 The overral system can be seen here [plan.md](docs/plan.md), though it's not
 updated in a while. will fix that
+
+![System Overview](tankyu-sha.excalidraw.png)
 
 ### How to run
 

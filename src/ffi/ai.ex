@@ -67,4 +67,14 @@ defmodule Ai do
 
     Ollama.embed(client, model: model, input: content)
   end
+
+  def chat(model, messages, tools) do
+    client = Ollama.init(receive_timeout: 60_000 * 4)
+
+    Ollama.chat(client,
+      model: model,
+      messages: messages,
+      tools: tools
+    )
+  end
 end

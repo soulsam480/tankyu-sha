@@ -1,5 +1,6 @@
 import gleam/dict
 import gleam/dynamic
+import gleam/json
 import gleam/regexp
 import gleam/result
 import lib/error
@@ -79,3 +80,14 @@ fn strip_thinking(from: String) {
 
   Ok(regexp.replace(think_re, from, ""))
 }
+
+pub fn empty_tools() {
+  json.array([], json.int)
+}
+
+@external(erlang, "Elixir.Ai", "chat")
+pub fn chat(
+  model: String,
+  messages: List(String),
+  tools: json.Json,
+) -> Result(dynamic.Dynamic, dynamic.Dynamic)
